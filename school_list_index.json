@@ -1,0 +1,387 @@
+{
+  "1": {
+    "name": "กรุงเทพมหานคร",
+    "file_path": "school_list/1.html",
+    "updated_at": "2022-09-12"
+  },
+  "10": {
+    "name": "สระบุรี",
+    "file_path": "school_list/10.html",
+    "updated_at": "2022-09-12"
+  },
+  "11": {
+    "name": "ชลบุรี",
+    "file_path": "school_list/11.html",
+    "updated_at": "2022-09-12"
+  },
+  "12": {
+    "name": "ระยอง",
+    "file_path": "school_list/12.html",
+    "updated_at": "2022-09-12"
+  },
+  "13": {
+    "name": "จันทบุรี",
+    "file_path": "school_list/13.html",
+    "updated_at": "2022-09-12"
+  },
+  "14": {
+    "name": "ตราด",
+    "file_path": "school_list/14.html",
+    "updated_at": "2022-09-12"
+  },
+  "15": {
+    "name": "ฉะเชิงเทรา",
+    "file_path": "school_list/15.html",
+    "updated_at": "2022-09-12"
+  },
+  "16": {
+    "name": "ปราจีนบุรี",
+    "file_path": "school_list/16.html",
+    "updated_at": "2022-09-12"
+  },
+  "17": {
+    "name": "นครนายก",
+    "file_path": "school_list/17.html",
+    "updated_at": "2022-09-12"
+  },
+  "18": {
+    "name": "สระแก้ว",
+    "file_path": "school_list/18.html",
+    "updated_at": "2022-09-12"
+  },
+  "19": {
+    "name": "นครราชสีมา",
+    "file_path": "school_list/19.html",
+    "updated_at": "2022-09-12"
+  },
+  "2": {
+    "name": "สมุทรปราการ",
+    "file_path": "school_list/2.html",
+    "updated_at": "2022-09-12"
+  },
+  "20": {
+    "name": "บุรีรัมย์",
+    "file_path": "school_list/20.html",
+    "updated_at": "2022-09-12"
+  },
+  "21": {
+    "name": "สุรินทร์",
+    "file_path": "school_list/21.html",
+    "updated_at": "2022-09-12"
+  },
+  "22": {
+    "name": "ศรีสะเกษ",
+    "file_path": "school_list/22.html",
+    "updated_at": "2022-09-12"
+  },
+  "23": {
+    "name": "อุบลราชธานี",
+    "file_path": "school_list/23.html",
+    "updated_at": "2022-09-12"
+  },
+  "24": {
+    "name": "ยโสธร",
+    "file_path": "school_list/24.html",
+    "updated_at": "2022-09-12"
+  },
+  "25": {
+    "name": "ชัยภูมิ",
+    "file_path": "school_list/25.html",
+    "updated_at": "2022-09-12"
+  },
+  "26": {
+    "name": "อำนาจเจริญ",
+    "file_path": "school_list/26.html",
+    "updated_at": "2022-09-12"
+  },
+  "27": {
+    "name": "หนองบัวลำภู",
+    "file_path": "school_list/27.html",
+    "updated_at": "2022-09-12"
+  },
+  "28": {
+    "name": "ขอนแก่น",
+    "file_path": "school_list/28.html",
+    "updated_at": "2022-09-12"
+  },
+  "29": {
+    "name": "อุดรธานี",
+    "file_path": "school_list/29.html",
+    "updated_at": "2022-09-12"
+  },
+  "3": {
+    "name": "นนทบุรี",
+    "file_path": "school_list/3.html",
+    "updated_at": "2022-09-12"
+  },
+  "30": {
+    "name": "เลย",
+    "file_path": "school_list/30.html",
+    "updated_at": "2022-09-12"
+  },
+  "31": {
+    "name": "หนองคาย",
+    "file_path": "school_list/31.html",
+    "updated_at": "2022-09-12"
+  },
+  "32": {
+    "name": "มหาสารคาม",
+    "file_path": "school_list/32.html",
+    "updated_at": "2022-09-12"
+  },
+  "33": {
+    "name": "ร้อยเอ็ด",
+    "file_path": "school_list/33.html",
+    "updated_at": "2022-09-12"
+  },
+  "34": {
+    "name": "กาฬสินธุ์",
+    "file_path": "school_list/34.html",
+    "updated_at": "2022-09-12"
+  },
+  "35": {
+    "name": "สกลนคร",
+    "file_path": "school_list/35.html",
+    "updated_at": "2022-09-12"
+  },
+  "36": {
+    "name": "นครพนม",
+    "file_path": "school_list/36.html",
+    "updated_at": "2022-09-12"
+  },
+  "37": {
+    "name": "มุกดาหาร",
+    "file_path": "school_list/37.html",
+    "updated_at": "2022-09-12"
+  },
+  "38": {
+    "name": "เชียงใหม่",
+    "file_path": "school_list/38.html",
+    "updated_at": "2022-09-12"
+  },
+  "39": {
+    "name": "ลำพูน",
+    "file_path": "school_list/39.html",
+    "updated_at": "2022-09-12"
+  },
+  "4": {
+    "name": "ปทุมธานี",
+    "file_path": "school_list/4.html",
+    "updated_at": "2022-09-12"
+  },
+  "40": {
+    "name": "ลำปาง",
+    "file_path": "school_list/40.html",
+    "updated_at": "2022-09-12"
+  },
+  "41": {
+    "name": "อุตรดิตถ์",
+    "file_path": "school_list/41.html",
+    "updated_at": "2022-09-12"
+  },
+  "42": {
+    "name": "แพร่",
+    "file_path": "school_list/42.html",
+    "updated_at": "2022-09-12"
+  },
+  "43": {
+    "name": "น่าน",
+    "file_path": "school_list/43.html",
+    "updated_at": "2022-09-12"
+  },
+  "44": {
+    "name": "พะเยา",
+    "file_path": "school_list/44.html",
+    "updated_at": "2022-09-12"
+  },
+  "45": {
+    "name": "เชียงราย",
+    "file_path": "school_list/45.html",
+    "updated_at": "2022-09-12"
+  },
+  "46": {
+    "name": "แม่ฮ่องสอน",
+    "file_path": "school_list/46.html",
+    "updated_at": "2022-09-12"
+  },
+  "47": {
+    "name": "นครสวรรค์",
+    "file_path": "school_list/47.html",
+    "updated_at": "2022-09-12"
+  },
+  "48": {
+    "name": "อุทัยธานี",
+    "file_path": "school_list/48.html",
+    "updated_at": "2022-09-12"
+  },
+  "49": {
+    "name": "กำแพงเพชร",
+    "file_path": "school_list/49.html",
+    "updated_at": "2022-09-12"
+  },
+  "5": {
+    "name": "พระนครศรีอยุธยา",
+    "file_path": "school_list/5.html",
+    "updated_at": "2022-09-12"
+  },
+  "50": {
+    "name": "ตาก",
+    "file_path": "school_list/50.html",
+    "updated_at": "2022-09-12"
+  },
+  "51": {
+    "name": "สุโขทัย",
+    "file_path": "school_list/51.html",
+    "updated_at": "2022-09-12"
+  },
+  "52": {
+    "name": "พิษณุโลก",
+    "file_path": "school_list/52.html",
+    "updated_at": "2022-09-12"
+  },
+  "53": {
+    "name": "พิจิตร",
+    "file_path": "school_list/53.html",
+    "updated_at": "2022-09-12"
+  },
+  "54": {
+    "name": "เพชรบูรณ์",
+    "file_path": "school_list/54.html",
+    "updated_at": "2022-09-12"
+  },
+  "55": {
+    "name": "ราชบุรี",
+    "file_path": "school_list/55.html",
+    "updated_at": "2022-09-12"
+  },
+  "56": {
+    "name": "กาญจนบุรี",
+    "file_path": "school_list/56.html",
+    "updated_at": "2022-09-12"
+  },
+  "57": {
+    "name": "สุพรรณบุรี",
+    "file_path": "school_list/57.html",
+    "updated_at": "2022-09-12"
+  },
+  "58": {
+    "name": "นครปฐม",
+    "file_path": "school_list/58.html",
+    "updated_at": "2022-09-12"
+  },
+  "59": {
+    "name": "สมุทรสาคร",
+    "file_path": "school_list/59.html",
+    "updated_at": "2022-09-12"
+  },
+  "6": {
+    "name": "อ่างทอง",
+    "file_path": "school_list/6.html",
+    "updated_at": "2022-09-12"
+  },
+  "60": {
+    "name": "สมุทรสงคราม",
+    "file_path": "school_list/60.html",
+    "updated_at": "2022-09-12"
+  },
+  "61": {
+    "name": "เพชรบุรี",
+    "file_path": "school_list/61.html",
+    "updated_at": "2022-09-12"
+  },
+  "62": {
+    "name": "ประจวบคีรีขันธ์",
+    "file_path": "school_list/62.html",
+    "updated_at": "2022-09-12"
+  },
+  "63": {
+    "name": "นครศรีธรรมราช",
+    "file_path": "school_list/63.html",
+    "updated_at": "2022-09-12"
+  },
+  "64": {
+    "name": "กระบี่",
+    "file_path": "school_list/64.html",
+    "updated_at": "2022-09-12"
+  },
+  "65": {
+    "name": "พังงา",
+    "file_path": "school_list/65.html",
+    "updated_at": "2022-09-12"
+  },
+  "66": {
+    "name": "ภูเก็ต",
+    "file_path": "school_list/66.html",
+    "updated_at": "2022-09-12"
+  },
+  "67": {
+    "name": "สุราษฎร์ธานี",
+    "file_path": "school_list/67.html",
+    "updated_at": "2022-09-12"
+  },
+  "68": {
+    "name": "ระนอง",
+    "file_path": "school_list/68.html",
+    "updated_at": "2022-09-12"
+  },
+  "69": {
+    "name": "ชุมพร",
+    "file_path": "school_list/69.html",
+    "updated_at": "2022-09-12"
+  },
+  "7": {
+    "name": "ลพบุรี",
+    "file_path": "school_list/7.html",
+    "updated_at": "2022-09-12"
+  },
+  "70": {
+    "name": "สงขลา",
+    "file_path": "school_list/70.html",
+    "updated_at": "2022-09-12"
+  },
+  "71": {
+    "name": "สตูล",
+    "file_path": "school_list/71.html",
+    "updated_at": "2022-09-12"
+  },
+  "72": {
+    "name": "ตรัง",
+    "file_path": "school_list/72.html",
+    "updated_at": "2022-09-12"
+  },
+  "73": {
+    "name": "พัทลุง",
+    "file_path": "school_list/73.html",
+    "updated_at": "2022-09-12"
+  },
+  "74": {
+    "name": "ปัตตานี",
+    "file_path": "school_list/74.html",
+    "updated_at": "2022-09-12"
+  },
+  "75": {
+    "name": "ยะลา",
+    "file_path": "school_list/75.html",
+    "updated_at": "2022-09-12"
+  },
+  "76": {
+    "name": "นราธิวาส",
+    "file_path": "school_list/76.html",
+    "updated_at": "2022-09-12"
+  },
+  "77": {
+    "name": "บึงกาฬ",
+    "file_path": "school_list/77.html",
+    "updated_at": "2022-09-12"
+  },
+  "8": {
+    "name": "สิงห์บุรี",
+    "file_path": "school_list/8.html",
+    "updated_at": "2022-09-12"
+  },
+  "9": {
+    "name": "ชัยนาท",
+    "file_path": "school_list/9.html",
+    "updated_at": "2022-09-12"
+  }
+}
