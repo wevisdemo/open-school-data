@@ -12,10 +12,10 @@ BASE_URL = 'https://data.bopp-obec.info/emis'
 SCRAPING_URLS = {
   'general': BASE_URL+'/schooldata-view.php',
   'student': BASE_URL+'/schooldata-view_student.php',
-  'staff': BASE_URL+'/schooldata-view.php',
+  'staff': BASE_URL+'/schooldata-view_techer.php',
   'computer_internet': BASE_URL+'/schooldata-view_com-internet.php',
   'building': BASE_URL+'/schooldata-view_bobec.php',
-  'durable_goods': BASE_URL+'/schooldata-view_mobec.php?'
+  'durable_goods': BASE_URL+'/schooldata-view_mobec.php'
 }
 
 SCRAPED_FILE_DIRS = {}
