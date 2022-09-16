@@ -94,5 +94,12 @@
   {
     "key": "principal_image_path",
     "value": "2022-09/html/school/general/image/1020080034-20150531-102503.jpg"
+  },
+  {
+    "key": "latlng",
+    "value": [
+      13.415917589703469,
+      100.99043077777105
+    ]
   }
 ]

@@ -78,8 +78,7 @@ class SchoolData:
             else:
                 about_school.append({'value': _clean_text(cells[0].text)})
 
-        for comment in soup.children:
-            break
+        for comment in soup.children: break
         url = re.findall('url: (.*)\n', comment)[0]
         parent_url = re.sub('[^/]*$', '', url)
 
@@ -102,6 +101,15 @@ class SchoolData:
                     'value': download_image(
                         parent_url+image_src, image_dir)
                 })
+        
+        js_text = ' '.join([script.text for script in soup.find_all('script')])
+        latlng = re.findall('LatLng\((.*)\)', js_text)
+        if latlng:
+            latlng_float = [float(pos) for pos in latlng[0].split(',')]
+            about_school.append({
+                'key': 'latlng',
+                'value': latlng_float
+            })
 
         return about_school
 
