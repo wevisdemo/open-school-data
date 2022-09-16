@@ -187,13 +187,13 @@ class SchoolData:
         makedirs(self.save_dir, exist_ok=True)
         makedirs(self.save_dir, exist_ok=True)
 
-        json_temp = {
+        dict_temp = {
             'general': self.general(),
             'building': self.building(),
         }
-
-        with open(self.save_dir+'/'+self.school_id+'.json', 'w') as file:
-            json.dump(json_temp, file, ensure_ascii=False, indent=2)
+        for dir, dir_dict in dict_temp.items():
+            with open(self.save_dir + '/' + dir + '.json', 'w') as file:
+                json.dump(dir_dict, file, ensure_ascii=False, indent=2)
 
         student_data_df = self.student()
         staff_data_df = self.staff()
@@ -213,7 +213,7 @@ class SchoolData:
             df.to_csv(f'{self.save_dir}/{table_name}.csv', index=False)
 
         return {
-            'json': json_temp,
+            'json': dict_temp,
             'df': df_temp,
         }
 
