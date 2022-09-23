@@ -8,7 +8,6 @@ school_ids = list(sdi.school_ids())
 sd = None
 school_id = None
 
-
 def prep_param_dict(soup):
     interested_urls = {
         key: re.sub('^.*/', '', val)
@@ -22,26 +21,12 @@ def prep_param_dict(soup):
             param_dict[topic[0]] = re.sub('^.*\?', '', anchor.attrs['href'])
     return param_dict
 
-
 def _clean_text(string: str) -> str:
     trim_re = r'[\:\s]*$'
     string = string.strip()
     string = re.sub(trim_re, '', string)
     string = re.sub('\s+', ' ', string)
     return string
-
-
-def download_image(image_url: str, image_file_dir: str):
-    image_file_image_re = r'(.*/|\?.*)'
-    image = requests.get(image_url).content
-    image_file_name = re.sub(image_file_image_re, '', image_url)
-    image_file_path = image_file_dir+'/'+image_file_name
-    if not is_path_existed(image_file_path):
-        with open(image_file_path, 'wb') as im_file:
-            im_file.write(image)
-
-    return image_file_path
-
 
 class SchoolData:
     def __init__(self, school_id) -> None:
@@ -53,6 +38,12 @@ class SchoolData:
         params_dict = prep_param_dict(soup)
         self.sd = load_school_data(school_id, params_dict)
         self.save_dir = f'{ROOT_DIR}/school_data/school/{self.school_id}'
+        self.school_id_8_digit = None
+    
+    def school_obec(self):
+        general = self.general()
+
+        pass
 
     def general(self):
         about_school = []
@@ -69,7 +60,7 @@ class SchoolData:
                     value = [{
                         'text': a_tag.text,
                         'href': a_tag.attrs['href']}
-                        for a_tag in cells[1].find_all('a') if a_tag.text]
+                        for a_tag in cells[1].find_all('a') if a_tag.text] 
 
                 about_school.append({
                     'key': key_name,
@@ -149,46 +140,56 @@ class SchoolData:
         return durable_goods_df.iloc[:-1]
 
     def building(self):
-        b_soup = load_soup(self.sd['building'])
-        building_url = b_soup.find('iframe').attrs['src']
-        parent_url = re.sub('[^/]*$', '', building_url)
-        school_building_table_file_path =\
-            SCRAPED_FILE_DIRS['building']+'/'+school_id+'_building_list.html'
-        scrape_url(building_url, school_building_table_file_path)
-        soup = load_soup(school_building_table_file_path)
+        soup = load_soup(self.sd['building'])
+
+        for comment in soup.children:
+            break
+        url = re.findall('url: (.*)\n', comment)
+        parent_url = re.sub('[^/]*$', '', url[0])
 
         building_data = []
-        for cell in soup.find('table').find_all('td'):
-            if not cell.find('img'):
-                pair.update({
-                    'image_description': [
-                        x.strip()
-                        for x in cell.text.strip().split('\n') if x.strip()]
+        image_id = 0
+        for row in soup.find_all('div', attrs={'class': 'row'}):
+            cols = row.find_all('div', attrs={'class': 'col-md-4'})
+            for col in cols:
+                table = col.find('table')
+                if table is None:
+                    continue
+                heading = table.find('th')
+                building_details = {} 
+                images = col.find_all('img', attrs={'src': True})
+                building_images = []
+
+                image_dir = SCRAPED_FILE_DIRS['building'] + '/images'
+                if not is_path_existed(image_dir):
+                    makedirs(image_dir)
+
+                for img in images:
+                    img_url = parent_url + img['src']
+                    image_path = image_dir + '/' + self.school_id + '_' + '{:02}'.format(image_id) + '.jpg'
+                    image_id += 1
+
+                    if not is_path_existed(image_path):
+                        with open(image_path, 'wb') as im_file:
+                            image = requests.get(img_url).content
+                            im_file.write(image)
+
+                    building_images.append({
+                        'image_url': img_url,
+                        'image_path': image_path
+                    })
+
+
+                for tab_row in table.find_all('td'):
+                    if tab_row.find('a') is None:
+                        key, val = re.sub('\s+', ' ', tab_row.text.strip()).split(':', maxsplit=1)
+                        building_details.update({key.strip(): val.strip()})
+
+                building_data.append({
+                    'name': heading.text,
+                    'images': building_images,
+                    'details': building_details
                 })
-                building_data.append(pair)
-            else:
-                pair = {'image_url': parent_url+cell.find('img').attrs['src']}
-
-        image_dir = SCRAPED_FILE_DIRS['building'] + '/images'
-        if not is_path_existed(image_dir):
-            makedirs(image_dir)
-
-        for i, building in enumerate(building_data):
-            fex = re.findall('\.[^\.]*$', building['image_url'])
-            image_path = image_dir + '/' + self.school_id + f'_{i:02}'
-            if fex:
-                image_path = image_path + fex[0]
-            else:
-                image_path = image_path + '.jpg'
-
-            building['path'] = image_path
-
-            if is_path_existed(image_path):
-                continue
-
-            with open(image_path, 'wb') as im_file:
-                image = requests.get(building['image_url']).content
-                im_file.write(image)
         return building_data
 
     def save(self) -> Dict[str, Dict[str, Union[Dict, pd.DataFrame]]]:

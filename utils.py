@@ -45,6 +45,17 @@ def params_in_url(url) -> List[Tuple]:
   params = [tuple(param.split('=', maxsplit=1)) for param in params]
   return params
 
+def download_image(image_url: str, image_file_dir: str):
+    image_file_image_re = r'(.*/|\?.*)'
+    image = requests.get(image_url).content
+    image_file_name = re.sub(image_file_image_re, '', image_url)
+    image_file_path = image_file_dir+'/'+image_file_name
+    if not is_path_existed(image_file_path):
+        with open(image_file_path, 'wb') as im_file:
+            im_file.write(image)
+
+    return image_file_path
+
 def scrape_url(url, file_path):
   """
   scrape provided url and write it to file_path
@@ -92,6 +103,13 @@ def select_for_name(options: List) -> str:
 def is_path_existed(file_path):
   return path.exists(file_path)
 
+def load_building_data(school_id):
+  url = 'https://bobec.bopp-obec.info/build_sch_view.php?Obec_code=' + school_id
+  html_file_path = f'{SCRAPED_FILE_DIRS["building"]}/{school_id}.html'
+  if not is_path_existed(html_file_path):
+    scrape_url(url, html_file_path)
+  return { "building" : html_file_path }
+
 def load_school_data(school_id: str, params_dict: Dict={}, only=[], force=False):
   """
   load the school data by 10 digits school id. If they exis on the local
@@ -109,6 +127,9 @@ def load_school_data(school_id: str, params_dict: Dict={}, only=[], force=False)
   
   init_directorys()
   for feild in SCHOOL_DATA_FEILDS:
+    if feild == 'building':
+      data.update(load_building_data(school_id[4:]))
+      continue
     if only and feild not in only: continue
     html_file_path = f'{SCRAPED_FILE_DIRS[feild]}/{school_id}.html'
     if is_path_existed(html_file_path) and not force:
