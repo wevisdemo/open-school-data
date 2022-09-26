@@ -1,5 +1,13 @@
 # Open School Data
 
+```sh
+docker build -t opensd .
+docker run -it --rm \
+  --name openschooldata \
+  -v $(pwd)/data:/usr/src/app/out
+  opensd
+```
+
 ## โครงสร้าง
 
 ```

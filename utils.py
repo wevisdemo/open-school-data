@@ -8,7 +8,7 @@ from os import path, makedirs
 scrape_date = date.today().isoformat()
 INDEX_PAGE_URL = 'https://data.bopp-obec.info/emis/index.php'
 
-ROOT_DIR = date.today().strftime('%Y-%m')
+ROOT_DIR = 'out/' + date.today().strftime('%Y-%m')
 HTML_ROOT_DIR = ROOT_DIR+'/html'
 BASE_URL = 'https://data.bopp-obec.info/emis'
 SCRAPING_URLS = {
