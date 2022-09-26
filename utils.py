@@ -30,6 +30,27 @@ SCRAPED_FILE_DIRS['province'] = HTML_ROOT_DIR+'/province'
 
 SCHOOL_DATA_FEILDS = list(SCRAPING_URLS)
 
+def prep_param_dict(soup) -> Dict[str, str]:
+    interested_urls = {
+        key: re.sub('^.*/', '', val)
+        for key, val in SCRAPING_URLS.items()
+    }
+    param_dict = {}
+    for anchor in soup.find_all('a'):
+        topic = [kurl for kurl, iurl in interested_urls.items()
+                 if iurl in anchor.attrs['href']]
+        if topic:
+            param_dict[topic[0]] = re.sub('^.*\?', '', anchor.attrs['href'])
+    return param_dict
+
+def clean_text(string: str) -> str:
+    trim_re = r'[\:\s]*$'
+    string = string.strip()
+    string = re.sub(trim_re, '', string)
+    string = re.sub('\s+', ' ', string)
+    return string
+
+
 def init_directorys():
   for dir in SCRAPED_FILE_DIRS.values():
     makedirs(dir, exist_ok=True)

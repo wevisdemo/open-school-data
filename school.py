@@ -8,26 +8,6 @@ school_ids = list(sdi.school_ids())
 sd = None
 school_id = None
 
-def prep_param_dict(soup):
-    interested_urls = {
-        key: re.sub('^.*/', '', val)
-        for key, val in SCRAPING_URLS.items()
-    }
-    param_dict = {}
-    for anchor in soup.find_all('a'):
-        topic = [kurl for kurl, iurl in interested_urls.items()
-                 if iurl in anchor.attrs['href']]
-        if topic:
-            param_dict[topic[0]] = re.sub('^.*\?', '', anchor.attrs['href'])
-    return param_dict
-
-def _clean_text(string: str) -> str:
-    trim_re = r'[\:\s]*$'
-    string = string.strip()
-    string = re.sub(trim_re, '', string)
-    string = re.sub('\s+', ' ', string)
-    return string
-
 class SchoolData:
     def __init__(self, school_id) -> None:
         assert len(school_id) == 10
@@ -40,40 +20,30 @@ class SchoolData:
         self.save_dir = f'{ROOT_DIR}/school_data/school/{self.school_id}'
         self.school_id_8_digit = None
     
-    def school_obec(self):
-        general = self.general()
-
-        pass
-
-    def general(self):
-        about_school = []
-        soup = load_soup(self.sd['general'])
+    def general(self) -> Dict:
+        about_school: List = []
+        soup: BeautifulSoup = load_soup(self.sd['general'])
         table = soup.find('table').find('table', attrs={'width': '521'})
         for table_row in table.find_all('tr'):
             cells = table_row.find_all('td')
 
             if len(cells) == 2:
-                key_name = _clean_text(cells[0].text)
-                value = _clean_text(cells[1].text)
+                key_name: str = clean_text(cells[0].text)
+                value: str = clean_text(cells[1].text)
 
                 if cells[1].find_all('a'):
-                    value = [{
-                        'text': a_tag.text,
-                        'href': a_tag.attrs['href']}
+                    value: List = [{'text': a_tag.text, 'href': a_tag.attrs['href']}
                         for a_tag in cells[1].find_all('a') if a_tag.text] 
 
-                about_school.append({
-                    'key': key_name,
-                    'value': value
-                })
+                about_school.append({'key': key_name, 'value': value})
             else:
-                about_school.append({'value': _clean_text(cells[0].text)})
+                about_school.append({'value': clean_text(cells[0].text)})
 
         for comment in soup.children: break
-        url = re.findall('url: (.*)\n', comment)[0]
-        parent_url = re.sub('[^/]*$', '', url)
+        url: str = re.findall('url: (.*)\n', comment)[0]
 
-        image_dir = SCRAPED_FILE_DIRS['general']+'/image'
+        parent_url: str  = re.sub('[^/]*$', '', url)
+        image_dir: str = SCRAPED_FILE_DIRS['general']+'/image'
 
         if not is_path_existed(image_dir):
             makedirs(image_dir)
@@ -93,10 +63,10 @@ class SchoolData:
                         parent_url+image_src, image_dir)
                 })
         
-        js_text = ' '.join([script.text for script in soup.find_all('script')])
-        latlng = re.findall('LatLng\((.*)\)', js_text)
+        js_text: str = ' '.join([script.text for script in soup.find_all('script')])
+        latlng: str = re.findall('LatLng\((.*)\)', js_text)
         if latlng:
-            latlng_float = [float(pos) for pos in latlng[0].split(',')]
+            latlng_float: List[float] = [float(pos) for pos in latlng[0].split(',')]
             about_school.append({
                 'key': 'latlng',
                 'value': latlng_float
@@ -104,15 +74,22 @@ class SchoolData:
 
         return about_school
 
-    def student(self):
-        df = pd.read_html(self.sd['student'])[-1]
+    def student(self) -> Dict:
+        try:
+            df: pd.DataFrame = pd.read_html(self.sd['student'])[-1]
+        except:
+            return None
         col_headers = df.iloc[0]
         df.columns = col_headers
-        df = df.iloc[1:-1]
-        return df
+        if len(df) > 2:
+            df = df.iloc[1:-1]
+        return df.to_dict(orient='records')
 
-    def staff(self):
-        staff_df = pd.read_html(self.sd['staff'])[-1]
+    def staff(self) -> Dict:
+        try:
+            staff_df: pd.DataFrame = pd.read_html(self.sd['staff'])[-1]
+        except:
+            return None
         staff_header = staff_df.iloc[:2].values.tolist()
         staff_columns = [
             col1 if col1 == col2 else col1+'_'+col2
@@ -121,23 +98,37 @@ class SchoolData:
 
         staff_df = staff_df.iloc[2:]
         staff_df.columns = staff_columns
-        return staff_df
+        return staff_df.to_dict(orient='records')
 
-    def computer(self):
-        tables = pd.read_html(self.sd['computer_internet'])
+    def computer(self) -> Dict:
+        file_path = self.sd['computer_internet']
+        try:
+            tables = pd.read_html(file_path)
+        except:
+            return None
+        assert len(tables) >= 5 
         df = tables[5]
-        return self._merge_table(df)
+        computer = self._df_to_dict(df)
+        return computer
+    
+    def internet(self) -> Dict:
+        try:
+            tables = pd.read_html(self.sd['computer_internet'])
+            df = tables[6]
+        except:
+            return None
+        return self._df_to_dict(df)
 
-    def internet(self):
-        tables = pd.read_html(self.sd['computer_internet'])
-        df = tables[6]
-        return self._merge_table(df)
-
-    def durable_goods(self):
-        durable_goods_df = pd.read_html(self.sd['durable_goods'])[-2]
-        durable_goods_df.columns = durable_goods_df.iloc[0]
-        durable_goods_df = durable_goods_df.iloc[1:, :]
-        return durable_goods_df.iloc[:-1]
+    def durable_goods(self) -> Dict:
+        try:
+            tables = pd.read_html(self.sd['durable_goods'])
+            durable_goods_df: pd.DataFrame = tables[-2] 
+            durable_goods_df.columns = durable_goods_df.iloc[0]
+            durable_goods_df = durable_goods_df.iloc[1:, :]
+            durable_goods_df = durable_goods_df.iloc[:-1]
+        except:
+            return None
+        return durable_goods_df.to_dict(orient='records')
 
     def building(self):
         soup = load_soup(self.sd['building'])
@@ -156,7 +147,7 @@ class SchoolData:
                 if table is None:
                     continue
                 heading = table.find('th')
-                building_details = {} 
+                building_details: Dict = dict()
                 images = col.find_all('img', attrs={'src': True})
                 building_images = []
 
@@ -174,15 +165,14 @@ class SchoolData:
                             image = requests.get(img_url).content
                             im_file.write(image)
 
-                    building_images.append({
-                        'image_url': img_url,
-                        'image_path': image_path
-                    })
+                    building_images.append({'image_url': img_url, 'image_path': image_path})
 
 
                 for tab_row in table.find_all('td'):
                     if tab_row.find('a') is None:
-                        key, val = re.sub('\s+', ' ', tab_row.text.strip()).split(':', maxsplit=1)
+                        text = tab_row.text.strip()
+                        if ':' not in text: continue
+                        key, val = re.sub('\s+', ' ', text).split(':', maxsplit=1)
                         building_details.update({key.strip(): val.strip()})
 
                 building_data.append({
@@ -194,74 +184,45 @@ class SchoolData:
 
     def save(self) -> Dict[str, Dict[str, Union[Dict, pd.DataFrame]]]:
         makedirs(self.save_dir, exist_ok=True)
-        makedirs(self.save_dir, exist_ok=True)
 
         dict_temp = {
-            'general': self.general(),
-            'building': self.building(),
+            'building' : self.building(),
+            'computer' : self.computer(),
+             'durable' : self.durable_goods(),
+             'general' : self.general(),
+             'student' : self.student(),
+               'staff' : self.staff(),
+            'internet' : self.internet(),
         }
         for dir, dir_dict in dict_temp.items():
             with open(self.save_dir + '/' + dir + '.json', 'w') as file:
                 json.dump(dir_dict, file, ensure_ascii=False, indent=2)
 
-        student_data_df = self.student()
-        staff_data_df = self.staff()
-        computer_data_df = self.computer()
-        internet_data_df = self.internet()
-        durable_goods_data_df = self.durable_goods()
+        return dict_temp
 
-        df_temp = {
-            'student': student_data_df,
-            'staff': staff_data_df,
-            'computer': computer_data_df,
-            'internet': internet_data_df,
-            'durable_goods': durable_goods_data_df
-        }
-
-        for table_name, df in df_temp.items():
-            df.to_csv(f'{self.save_dir}/{table_name}.csv', index=False)
-
-        return {
-            'json': dict_temp,
-            'df': df_temp,
-        }
-
-    def _merge_table(self, df):
+    def _df_to_dict(self, df) -> pd.DataFrame:
         header = ''
-        rows = []
+        rows = {}
         for i, row in df.iterrows():
             if len(row.unique()) != len(row):
                 header = row[0]
             else:
-                rows.append([header, *row])
-        return pd.DataFrame(rows)
+                row_list = row.values.tolist()
+                if len(row_list) == 2:
+                    if header not in rows.keys(): rows[header] = dict()
+                    rows[header][row_list[0]] = row_list[1]
+        return rows
 
 
 if __name__ == '__main__':
-    school_data_dict = {
-        'general': dict(),
-        'building': dict(),
-        'student': pd.DataFrame(),
-        'staff': pd.DataFrame(),
-        'computer': pd.DataFrame(),
-        'internet': pd.DataFrame(),
-        'durable_goods': pd.DataFrame(),
-    }
+    school_data_dict: Dict = dict()
 
     for school_id in school_ids[490:492]:
-        school_data = SchoolData(school_id)
-        school_saved_data = school_data.save()
-        for key in school_saved_data['df']:
-            school_saved_data['df'][key].insert(0, 'school_id', school_id)
-            school_data_dict[key] = pd.concat([school_data_dict[key], school_saved_data['df'][key]])
+        school_data: SchoolData = SchoolData(school_id)
+        school_saved_data: Dict = school_data.save()
+        school_data_dict[school_id] = school_saved_data
 
-        for key in school_saved_data['json']:
-            school_data_dict[key].update({school_id: school_saved_data['json'][key]})
+    file_path = ROOT_DIR + '/school_data/' + 'open_school_data.json'
+    with open(file_path, 'w') as file:
+        json.dump(school_data_dict, file, ensure_ascii=False, indent=1)
 
-    for key, val in school_data_dict.items():
-        file_path = ROOT_DIR + '/school_data/' + key
-        if isinstance(val, dict):
-            with open(file_path + '.json', 'w') as file:
-                json.dump(val, file, ensure_ascii=False, indent=2)
-        elif isinstance(val, pd.DataFrame):
-            val.to_csv(file_path + '.csv', index=False)
