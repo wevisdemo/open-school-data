@@ -11,6 +11,6 @@ And run it!
 ```sh
 docker run -it --rm \
   --name openschooldata \
-  -v $(pwd)/data:/usr/src/app/out \
+  -v $(pwd)/out:/usr/src/app/out \
   opensd
 ```

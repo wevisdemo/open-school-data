@@ -214,9 +214,9 @@ if __name__ == '__main__':
     school_ids = list(sdi.school_ids())
 
     school_data_dict: Dict = dict()
-    school_iter = tqdm(school_ids[:5])
-    for school_id in school_ids:
-        school_iter.desc = 'School: ' + school_ids
+    school_iter = tqdm(school_ids[:1])
+    for school_id in school_iter:
+        school_iter.desc = 'School: ' + school_id
         data: SchoolData = SchoolData(school_id)
         saved_data: Dict = data.save()
         school_data_dict[school_id] = saved_data
