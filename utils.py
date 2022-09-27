@@ -4,6 +4,7 @@ from typing import Dict, List, Tuple
 from bs4 import BeautifulSoup
 import re, json, requests
 from os import path, makedirs
+from province import main as province
 
 scrape_date = date.today().isoformat()
 INDEX_PAGE_URL = 'https://data.bopp-obec.info/emis/index.php'
@@ -214,7 +215,7 @@ class SchoolDataIndex:
   def load(self):
     file_path = self.dir+'/'+self.file_name
     if not is_path_existed(file_path):
-      return
+      province()
     with open(self.dir+'/'+self.file_name, 'r') as index_file:
       self.data = json.load(index_file)
 

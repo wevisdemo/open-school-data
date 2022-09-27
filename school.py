@@ -2,11 +2,7 @@ from typing import Union
 from utils import *
 import pandas as pd
 import re
-
-sdi = SchoolDataIndex()
-school_ids = list(sdi.school_ids())
-sd = None
-school_id = None
+from tqdm import tqdm
 
 class SchoolData:
     def __init__(self, school_id) -> None:
@@ -213,14 +209,18 @@ class SchoolData:
                     rows[header][row_list[0]] = row_list[1]
         return rows
 
-
 if __name__ == '__main__':
-    school_data_dict: Dict = dict()
+    sdi = SchoolDataIndex()
+    school_ids = list(sdi.school_ids())
 
-    for school_id in school_ids[490:492]:
-        school_data: SchoolData = SchoolData(school_id)
-        school_saved_data: Dict = school_data.save()
-        school_data_dict[school_id] = school_saved_data
+    school_data_dict: Dict = dict()
+    school_iter = tqdm(school_ids[:5])
+    for school_id in school_ids:
+        school_iter.desc = 'School: ' + school_ids
+        data: SchoolData = SchoolData(school_id)
+        saved_data: Dict = data.save()
+        school_data_dict[school_id] = saved_data
+        school_iter.update(1)
 
     file_path = ROOT_DIR + '/school_data/' + 'open_school_data.json'
     with open(file_path, 'w') as file:

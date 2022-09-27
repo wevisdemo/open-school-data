@@ -60,7 +60,7 @@ def _thai_char_len(text) -> int:
   return len(re.sub('[^ก-า]', '', text))
 
 
-if __name__ == '__main__':
+def main():
   sdi = SchoolDataIndex()
   province_root_dir: str = f'{HTML_ROOT_DIR}/province'
   index_html_path: str = f'{province_root_dir}/index.html'
@@ -97,7 +97,7 @@ if __name__ == '__main__':
   province_name_max_len = max([_thai_char_len(province['name']) for province in sdi])
   for province in it:
     it.desc = province['name'] + (province_name_max_len - _thai_char_len(province['name'])) * " "
-    file_path = SCRAPED_FILE_DIRS['province']+'/'+province['id']+'.html'
+    file_path = SCRAPED_FILE_DIRS['province'] + '/' + province['id'] + '.html'
     province['html_file_path'] = file_path
     if not is_path_existed(file_path):
       scrape_url(province['url'], file_path)
@@ -110,4 +110,7 @@ if __name__ == '__main__':
     it.update(1)
 
   sdi.save()
+
+if __name__ == '__main__':
+  main()
   
