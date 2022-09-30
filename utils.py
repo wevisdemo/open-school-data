@@ -1,12 +1,13 @@
 from datetime import date
 from os import makedirs
+from random import randrange, uniform
+from time import sleep
 from typing import Dict, List, Tuple
 from bs4 import BeautifulSoup
 import re
 import json
 import requests
 from os import path, makedirs
-from province import main as province
 
 scrape_date = date.today().isoformat()
 INDEX_PAGE_URL = 'https://data.bopp-obec.info/emis/index.php'
@@ -51,6 +52,19 @@ def prep_param_dict(soup: BeautifulSoup) -> Dict[str, str]:
             param_dict[topic[0]] = re.sub('^.*\?', '', anchor.attrs['href'])
     return param_dict
 
+def pages_in_general_page(soup):
+    interested_urls: Dict = {
+        key: re.sub('^.*/', '', val)
+        for key, val in SCRAPING_URLS.items()
+    }
+    url_dict: Dict = dict()
+    
+    for anchor in soup.find_all('a'):
+        topic = [kurl for kurl, iurl in interested_urls.items()
+                 if iurl in anchor.attrs['href']]
+        if topic:
+            url_dict[topic[0]] = BASE_URL + '/' + anchor.attrs['href']
+    return url_dict
 
 def clean_text(string: str) -> str:
     """
@@ -99,11 +113,18 @@ def download_image(image_url: str, image_file_dir: str):
     return image_file_path
 
 
+class StatusCodeException(ValueError):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+
 def scrape_url(url, file_path) -> Dict:
     """
     scrape provided url and write it to file_path
     """
     response = requests.get(url)
+    if response.status_code != 200:
+        raise StatusCodeException(f' {url} status code is {response.status_code}')
     scrape_date = date.today().isoformat()
 
     init_directories()
@@ -171,7 +192,7 @@ def load_school_data(school_id: str, params_dict: Dict = {}, only=[], force=Fals
       - `school_id 10` digits school id
     """
     data = {}
-    params = {f: '' for f in SCHOOL_DATA_FEILDS}
+    params = {f: '' for f in SCHOOL_DATA_FEILDS if not only or f in only}
 
     if params_dict:
         params.update(params_dict)
@@ -180,12 +201,13 @@ def load_school_data(school_id: str, params_dict: Dict = {}, only=[], force=Fals
     for feild in SCHOOL_DATA_FEILDS:
         if feild == 'building':
             data.update(load_building_data(school_id[4:]))
+            sleep(uniform(0.4, 3))
             continue
         if only and feild not in only:
             continue
         html_file_path = f'{SCRAPED_FILE_DIRS[feild]}/{school_id}.html'
         if is_path_existed(html_file_path) and not force:
-            pass
+            print(html_file_path, 'already existed')
         else:
             feild_params = params[feild]
             if feild_params and feild_params[0] != '?':
@@ -194,6 +216,7 @@ def load_school_data(school_id: str, params_dict: Dict = {}, only=[], force=Fals
                 feild_params = f'?School_ID={school_id}'
             url = SCRAPING_URLS[feild] + feild_params
             scrape_url(url, html_file_path)
+            sleep(uniform(0.5, 2))
         data[feild] = html_file_path
     return data
 
@@ -202,10 +225,15 @@ def load_soup(file_path):
     """
     Load html beautifulsoup from `file_path`
     """
-    assert is_path_existed(file_path)
+    assert is_path_existed(file_path), file_path + ' not existed'
 
     with open(file_path, 'r') as file:
-        return BeautifulSoup(file.read(), 'html.parser')
+        file_html = file.read()
+        soup = BeautifulSoup(file_html, 'html.parser')
+        if soup.find('html') is None:
+            return None
+    return soup
+
 
 
 def find_lat_lng(html_content):
@@ -215,33 +243,44 @@ def find_lat_lng(html_content):
     school_lat_lng_re = f'LatLng\((\d+\.\d+,\s*\d+\.\d+)\)'
     re.findall(school_lat_lng_re, html_content)
 
+def get_school_soup(school_id, page):
+    if page not in SCRAPING_URLS.keys():
+        raise ValueError(f'{page} not in ' + str(SCRAPING_URLS.keys()))
+    file_path = SCRAPED_FILE_DIRS[page] + '/' + school_id + '.html'
+    if is_path_existed(file_path):
+        return load_soup(file_path)
+    return None
 
 class SchoolDataIndex:
     def __init__(self):
         self.data = {}
         self.dir = ROOT_DIR
         self.file_name = 'school_data_index.json'
-        self.load()
+        self.file_path = self.dir+'/'+self.file_name
+        self.data = None
 
     def add_province(self, province_id, data):
+        if self.data is None:
+            self.load()
         self.data[province_id] = data
         data['schools'] = {}
 
     def add_school(self, province_id, school_id: str, data: Dict):
+        if self.data is None:
+            self.load()
         if province_id not in self.data.keys():
             self.add_province(province_id)
         self.data[province_id]['schools'][school_id] = data
 
     def add_schools(self, province_id, school_ids: List[str], datas: List):
+        if self.data is None:
+            self.load()
         assert len(school_ids) == len(datas)
         for school_id, data in zip(school_ids, datas):
             self.add_school(province_id, school_id, data)
 
     def load(self):
-        file_path = self.dir+'/'+self.file_name
-        if not is_path_existed(file_path):
-            province()
-        with open(self.dir+'/'+self.file_name, 'r') as index_file:
+        with open(self.file_path, 'r') as index_file:
             self.data = json.load(index_file)
 
     def save(self):
@@ -249,25 +288,36 @@ class SchoolDataIndex:
             json.dump(self.data, index_file, ensure_ascii=False, indent=2)
 
     def __getitem__(self, key):
+        if self.data is None:
+            self.load()
         return self.data[key]
 
     def __setitem__(self, key, val):
+        if self.data is None:
+            self.load()
         self.data[key] = val
-        self.save()
 
     def __iter__(self):
+        if self.data is None:
+            self.load()
         for province_id in self.data:
             yield self.data[province_id]
 
     def __len__(self):
+        if self.data is None:
+            self.load()
         return len(self.data.keys())
 
     def school_ids(self):
+        if self.data is None:
+            self.load()
         for province_id in self.data:
             schools: Dict = self.data[province_id]['schools']
             for school in schools.keys():
                 yield school
 
     def school_datas(self):
+        if self.data is None:
+            self.load()
         for school_id in self.school_ids:
             yield load_school_data(school_id)

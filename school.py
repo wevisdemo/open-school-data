@@ -1,7 +1,9 @@
+from random import shuffle
 from typing import Union
 from utils import *
 import pandas as pd
 import re
+from province import main as province
 from tqdm import tqdm
 
 class SchoolData:
@@ -182,18 +184,24 @@ class SchoolData:
         makedirs(self.save_dir, exist_ok=True)
 
         dict_temp = {
-            'building' : self.building(),
-            'computer' : self.computer(),
-             'durable' : self.durable_goods(),
-             'general' : self.general(),
-             'student' : self.student(),
-               'staff' : self.staff(),
-            'internet' : self.internet(),
+            'building' : self.building,
+            'computer' : self.computer,
+             'durable' : self.durable_goods,
+             'general' : self.general,
+             'student' : self.student,
+               'staff' : self.staff,
+            'internet' : self.internet,
         }
         for dir, dir_dict in dict_temp.items():
-            with open(self.save_dir + '/' + dir + '.json', 'w') as file:
-                json.dump(dir_dict, file, ensure_ascii=False, indent=2)
-
+            save_path = self.save_dir + '/' + dir + '.json'
+            if not is_path_existed(save_path):
+                data = dir_dict()
+                with open(save_path, 'w') as file:
+                    json.dump(data, file, ensure_ascii=False, indent=2)
+            else:
+                with open(save_path, 'r') as file:
+                    data = json.load(file)
+            dict_temp[dir] = data
         return dict_temp
 
     def _df_to_dict(self, df) -> pd.DataFrame:
@@ -211,18 +219,27 @@ class SchoolData:
 
 if __name__ == '__main__':
     sdi = SchoolDataIndex()
+    if not is_path_existed(sdi.file_path):
+        province()
     school_ids = list(sdi.school_ids())
-
+    shuffle(school_ids)
     school_data_dict: Dict = dict()
-    school_iter = tqdm(school_ids[:1])
+    school_iter = tqdm(school_ids)
+
+    file_path = ROOT_DIR + '/school_data/' + 'open_school_data.json'
+    with open(file_path, 'r') as file:
+        school_data_dict = json.load(file)
+
     for school_id in school_iter:
         school_iter.desc = 'School: ' + school_id
+        data = None
+        saved_data = None 
         data: SchoolData = SchoolData(school_id)
         saved_data: Dict = data.save()
+        school_iter.desc = 'skiped ' + school_id
         school_data_dict[school_id] = saved_data
         school_iter.update(1)
 
-    file_path = ROOT_DIR + '/school_data/' + 'open_school_data.json'
-    with open(file_path, 'w') as file:
-        json.dump(school_data_dict, file, ensure_ascii=False, indent=1)
+        with open(file_path, 'w') as file:
+            json.dump(school_data_dict, file, ensure_ascii=False, indent=1)
 

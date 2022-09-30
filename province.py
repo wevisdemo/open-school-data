@@ -1,3 +1,4 @@
+from time import sleep
 from utils import *
 import re
 from tqdm import tqdm
@@ -10,7 +11,7 @@ def select_for_name(options: List) -> str:
 
 def parse_table(table_soup):
   thead = table_soup.find('thead')
-  assert len(thead) > 0
+  assert thead is not None and len(thead) > 0
   headers = [head.text for head in thead.find_all('th')]
 
   table_data = []
@@ -73,7 +74,6 @@ def main():
 
   province_select_name: str = 'จังหวัด/ศธจ.'
   province_url_param: str = 'province'
-  provinces: List[Dict] = list()
 
   for select_tag_soup in soup.find_all('select'):
     options = select_tag_soup.findAll('option')
@@ -101,12 +101,10 @@ def main():
     province['html_file_path'] = file_path
     if not is_path_existed(file_path):
       scrape_url(province['url'], file_path)
-    try:
-      school_list = province_school_list(province['html_file_path'])
-      school_list = reshape_school_data_table(school_list)
-      sdi.add_schools(province['id'], school_list.keys(), school_list.values())
-    except:
-      pass
+      sleep(randrange(0.5, 1))
+    school_list = province_school_list(province['html_file_path'])
+    school_list = reshape_school_data_table(school_list)
+    sdi.add_schools(province['id'], school_list.keys(), school_list.values())
     it.update(1)
 
   sdi.save()
