@@ -1,10 +1,9 @@
 import json
-from json.encoder import py_encode_basestring_ascii
 from random import uniform
 from time import sleep
 from typing import Dict
 from tqdm import tqdm
-from indexer import URLIndex
+from indexer import Index
 from utils import ROOT_DIR, SCRAPED_FILE_DIRS, is_path_existed, scrape_url
 
 def load_json(fpath):
@@ -16,7 +15,7 @@ def dump_json(obj, fpath):
     json.dump(obj, fp, indent=1)
 
 if __name__ == '__main__':
-  url_index = URLIndex(ROOT_DIR + '/url_index.txt')
+  url_index = Index(ROOT_DIR + '/url_index.txt')
   fpath = ROOT_DIR+'/pages.json'
   pages = load_json(fpath)
 
@@ -24,7 +23,6 @@ if __name__ == '__main__':
   si = 0
 
   page_iter = tqdm(pages.items())
-  link_index_fp = open(ROOT_DIR + '/url_index.txt', 'a')
 
   def scrape_pages(school_id: str, pages: Dict[str, str]):
     """
@@ -32,12 +30,12 @@ if __name__ == '__main__':
     """
     school_scraped = {}
     for page in pages:
-      if page == 'general': continue
+      if page == 'general' or page == 'building': continue
       page_iter.desc = school_id + ' ' + page
 
       url = pages[page]
       fpath = SCRAPED_FILE_DIRS[page] + '/' +school_id + '.html'
-      if not is_path_existed(fpath):
+      if url_index[url] is None:
         try:
           scrape_url(url, fpath)
         except ValueError as e:
@@ -45,7 +43,7 @@ if __name__ == '__main__':
           continue
         sleep_for = uniform(0.3, 1)
         sleep(sleep_for)
-      link_index_fp.write(url + '\t' + fpath + '\n')
+      url_index[url] = fpath
       school_scraped[page] = fpath
     return school_scraped
 
@@ -56,5 +54,4 @@ if __name__ == '__main__':
     if page_iter.n % 20 == 0:
       dump_json(school_pages_index, ROOT_DIR + '/school_pages_index.json')
     
-  link_index_fp.close()
   dump_json(school_pages_index, ROOT_DIR + '/school_pages_index.json')

@@ -9,10 +9,9 @@ import json
 import requests
 from os import path, makedirs
 
-scrape_date = date.today().isoformat()
 INDEX_PAGE_URL = 'https://data.bopp-obec.info/emis/index.php'
 
-ROOT_DIR = 'out/' + date.today().strftime('%Y-%m')
+ROOT_DIR = 'out/' + '2022-09'
 HTML_ROOT_DIR = ROOT_DIR+'/html'
 BASE_URL = 'https://data.bopp-obec.info/emis'
 SCRAPING_URLS = {
@@ -52,19 +51,21 @@ def prep_param_dict(soup: BeautifulSoup) -> Dict[str, str]:
             param_dict[topic[0]] = re.sub('^.*\?', '', anchor.attrs['href'])
     return param_dict
 
+
 def pages_in_general_page(soup):
     interested_urls: Dict = {
         key: re.sub('^.*/', '', val)
         for key, val in SCRAPING_URLS.items()
     }
     url_dict: Dict = dict()
-    
+
     for anchor in soup.find_all('a'):
         topic = [kurl for kurl, iurl in interested_urls.items()
                  if iurl in anchor.attrs['href']]
         if topic:
             url_dict[topic[0]] = BASE_URL + '/' + anchor.attrs['href']
     return url_dict
+
 
 def clean_text(string: str) -> str:
     """
@@ -124,7 +125,8 @@ def scrape_url(url, file_path) -> Dict:
     """
     response = requests.get(url)
     if response.status_code != 200:
-        raise StatusCodeException(f' {url} status code is {response.status_code}')
+        raise StatusCodeException(
+            f' {url} status code is {response.status_code}')
     scrape_date = date.today().isoformat()
 
     init_directories()
@@ -235,13 +237,13 @@ def load_soup(file_path):
     return soup
 
 
-
 def find_lat_lng(html_content):
     """
     find latitude and longtitude in the html page
     """
     school_lat_lng_re = f'LatLng\((\d+\.\d+,\s*\d+\.\d+)\)'
     re.findall(school_lat_lng_re, html_content)
+
 
 def get_school_soup(school_id, page):
     if page not in SCRAPING_URLS.keys():
@@ -250,6 +252,7 @@ def get_school_soup(school_id, page):
     if is_path_existed(file_path):
         return load_soup(file_path)
     return None
+
 
 class SchoolDataIndex:
     def __init__(self):
@@ -280,6 +283,9 @@ class SchoolDataIndex:
             self.add_school(province_id, school_id, data)
 
     def load(self):
+        if not is_path_existed(self.file_path):
+            self.data = dict()
+            return
         with open(self.file_path, 'r') as index_file:
             self.data = json.load(index_file)
 

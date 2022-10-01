@@ -6,6 +6,7 @@ import re
 from province import main as province
 from tqdm import tqdm
 
+
 class SchoolData:
     def __init__(self, school_id) -> None:
         assert len(school_id) == 10
@@ -17,7 +18,7 @@ class SchoolData:
         self.sd = load_school_data(school_id, params_dict)
         self.save_dir = f'{ROOT_DIR}/school_data/school/{self.school_id}'
         self.school_id_8_digit = None
-    
+
     def general(self) -> Dict:
         about_school: List = []
         soup: BeautifulSoup = load_soup(self.sd['general'])
@@ -31,16 +32,17 @@ class SchoolData:
 
                 if cells[1].find_all('a'):
                     value: List = [{'text': a_tag.text, 'href': a_tag.attrs['href']}
-                        for a_tag in cells[1].find_all('a') if a_tag.text] 
+                                   for a_tag in cells[1].find_all('a') if a_tag.text]
 
                 about_school.append({'key': key_name, 'value': value})
             else:
                 about_school.append({'value': clean_text(cells[0].text)})
 
-        for comment in soup.children: break
+        for comment in soup.children:
+            break
         url: str = re.findall('url: (.*)\n', comment)[0]
 
-        parent_url: str  = re.sub('[^/]*$', '', url)
+        parent_url: str = re.sub('[^/]*$', '', url)
         image_dir: str = SCRAPED_FILE_DIRS['general']+'/image'
 
         if not is_path_existed(image_dir):
@@ -60,11 +62,13 @@ class SchoolData:
                     'value': download_image(
                         parent_url+image_src, image_dir)
                 })
-        
-        js_text: str = ' '.join([script.text for script in soup.find_all('script')])
+
+        js_text: str = ' '.join(
+            [script.text for script in soup.find_all('script')])
         latlng: str = re.findall('LatLng\((.*)\)', js_text)
         if latlng:
-            latlng_float: List[float] = [float(pos) for pos in latlng[0].split(',')]
+            latlng_float: List[float] = [
+                float(pos) for pos in latlng[0].split(',')]
             about_school.append({
                 'key': 'latlng',
                 'value': latlng_float
@@ -104,11 +108,11 @@ class SchoolData:
             tables = pd.read_html(file_path)
         except:
             return None
-        assert len(tables) >= 5 
+        assert len(tables) >= 5
         df = tables[5]
         computer = self._df_to_dict(df)
         return computer
-    
+
     def internet(self) -> Dict:
         try:
             tables = pd.read_html(self.sd['computer_internet'])
@@ -120,7 +124,7 @@ class SchoolData:
     def durable_goods(self) -> Dict:
         try:
             tables = pd.read_html(self.sd['durable_goods'])
-            durable_goods_df: pd.DataFrame = tables[-2] 
+            durable_goods_df: pd.DataFrame = tables[-2]
             durable_goods_df.columns = durable_goods_df.iloc[0]
             durable_goods_df = durable_goods_df.iloc[1:, :]
             durable_goods_df = durable_goods_df.iloc[:-1]
@@ -155,7 +159,8 @@ class SchoolData:
 
                 for img in images:
                     img_url = parent_url + img['src']
-                    image_path = image_dir + '/' + self.school_id + '_' + '{:02}'.format(image_id) + '.jpg'
+                    image_path = image_dir + '/' + self.school_id + \
+                        '_' + '{:02}'.format(image_id) + '.jpg'
                     image_id += 1
 
                     if not is_path_existed(image_path):
@@ -163,14 +168,16 @@ class SchoolData:
                             image = requests.get(img_url).content
                             im_file.write(image)
 
-                    building_images.append({'image_url': img_url, 'image_path': image_path})
-
+                    building_images.append(
+                        {'image_url': img_url, 'image_path': image_path})
 
                 for tab_row in table.find_all('td'):
                     if tab_row.find('a') is None:
                         text = tab_row.text.strip()
-                        if ':' not in text: continue
-                        key, val = re.sub('\s+', ' ', text).split(':', maxsplit=1)
+                        if ':' not in text:
+                            continue
+                        key, val = re.sub(
+                            '\s+', ' ', text).split(':', maxsplit=1)
                         building_details.update({key.strip(): val.strip()})
 
                 building_data.append({
@@ -184,13 +191,13 @@ class SchoolData:
         makedirs(self.save_dir, exist_ok=True)
 
         dict_temp = {
-            'building' : self.building,
-            'computer' : self.computer,
-             'durable' : self.durable_goods,
-             'general' : self.general,
-             'student' : self.student,
-               'staff' : self.staff,
-            'internet' : self.internet,
+            'building': self.building,
+            'computer': self.computer,
+            'durable': self.durable_goods,
+            'general': self.general,
+            'student': self.student,
+            'staff': self.staff,
+            'internet': self.internet,
         }
         for dir, dir_dict in dict_temp.items():
             save_path = self.save_dir + '/' + dir + '.json'
@@ -213,9 +220,11 @@ class SchoolData:
             else:
                 row_list = row.values.tolist()
                 if len(row_list) == 2:
-                    if header not in rows.keys(): rows[header] = dict()
+                    if header not in rows.keys():
+                        rows[header] = dict()
                     rows[header][row_list[0]] = row_list[1]
         return rows
+
 
 if __name__ == '__main__':
     sdi = SchoolDataIndex()
@@ -233,7 +242,7 @@ if __name__ == '__main__':
     for school_id in school_iter:
         school_iter.desc = 'School: ' + school_id
         data = None
-        saved_data = None 
+        saved_data = None
         data: SchoolData = SchoolData(school_id)
         saved_data: Dict = data.save()
         school_iter.desc = 'skiped ' + school_id
@@ -242,4 +251,3 @@ if __name__ == '__main__':
 
         with open(file_path, 'w') as file:
             json.dump(school_data_dict, file, ensure_ascii=False, indent=1)
-

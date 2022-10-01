@@ -1,14 +1,17 @@
-class URLIndex:
+import path
+
+class Index:
   def __init__(self, fpath) -> None:
     assert fpath
     self.fpath = fpath
     self.index = dict()
 
-    with open(fpath, 'r') as fp:
-      lines = fp.readlines()
-      for line in lines:
-        key, val = line.split('\t', maxsplit=1)
-        self.index[key] = val
+    if path.Path(fpath).isfile():
+      with open(fpath, 'r') as fp:
+        lines = fp.readlines()
+        for line in lines:
+          key, val = line.split('\t', maxsplit=1)
+          self.index[key.strip()] = val.strip()
 
   def __getitem__(self, key):
     if key not in self.index.keys():
@@ -27,6 +30,9 @@ class URLIndex:
       
     with open(self.fpath, 'a') as fp:
       fp.write(key + '\t' + val + '\n')
+  
+  def __iter__(self):
+    return iter(self.index.items())
 
   def save(self):
     with open(self.fpath, 'r') as fp:
@@ -34,5 +40,5 @@ class URLIndex:
         fp.write(key + '\t' + val + '\n')
 
 if __name__ == '__main__':
-  url_index = URLIndex('url_index.txt')
+  url_index = Index('url_index.txt')
   print(url_index.index.keys())
