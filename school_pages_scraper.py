@@ -4,15 +4,8 @@ from time import sleep
 from typing import Dict
 from tqdm import tqdm
 from indexer import Index
-from utils import ROOT_DIR, SCRAPED_FILE_DIRS, is_path_existed, scrape_url
+from utils import ROOT_DIR, SCRAPED_FILE_DIRS, dump_json, load_json, scrape_url
 
-def load_json(fpath):
-  with open(fpath, 'r') as fp:
-    return json.load(fp)
-
-def dump_json(obj, fpath):
-  with open(fpath, 'w') as fp:
-    json.dump(obj, fp, indent=1)
 
 if __name__ == '__main__':
   url_index = Index(ROOT_DIR + '/url_index.txt')

@@ -34,6 +34,16 @@ SCRAPED_FILE_DIRS['province'] = HTML_ROOT_DIR+'/province'
 SCHOOL_DATA_FEILDS = list(SCRAPING_URLS)
 
 
+def load_json(fpath):
+  with open(fpath, 'r') as fp:
+    return json.load(fp)
+
+
+def dump_json(obj, fpath):
+  with open(fpath, 'w') as fp:
+    json.dump(obj, fp, indent=1)
+
+
 def prep_param_dict(soup: BeautifulSoup) -> Dict[str, str]:
     """
     prepare paramater dictionary for loading school data
@@ -290,8 +300,7 @@ class SchoolDataIndex:
             self.data = json.load(index_file)
 
     def save(self):
-        with open(self.dir+'/'+self.file_name, 'w') as index_file:
-            json.dump(self.data, index_file, ensure_ascii=False, indent=2)
+        dump_json(self.data, self.dir+'/'+self.file_name)
 
     def __getitem__(self, key):
         if self.data is None:

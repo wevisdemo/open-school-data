@@ -203,11 +203,9 @@ class SchoolData:
             save_path = self.save_dir + '/' + dir + '.json'
             if not is_path_existed(save_path):
                 data = dir_dict()
-                with open(save_path, 'w') as file:
-                    json.dump(data, file, ensure_ascii=False, indent=2)
+                dump_json(data, save_path)
             else:
-                with open(save_path, 'r') as file:
-                    data = json.load(file)
+                data = load_json(save_path)
             dict_temp[dir] = data
         return dict_temp
 
@@ -236,8 +234,7 @@ if __name__ == '__main__':
     school_iter = tqdm(school_ids)
 
     file_path = ROOT_DIR + '/school_data/' + 'open_school_data.json'
-    with open(file_path, 'r') as file:
-        school_data_dict = json.load(file)
+    school_data_dict = load_json(file_path)
 
     for school_id in school_iter:
         school_iter.desc = 'School: ' + school_id

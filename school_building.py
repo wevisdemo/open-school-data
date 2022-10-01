@@ -66,11 +66,9 @@ if __name__ == '__main__':
     for acode, fpath in tqdm(area_index, 'school in area'):
       building_schools += province_school_list(fpath)
 
-    with open(building_school_fpath, 'w') as fp:
-      json.dump(building_schools, fp, ensure_ascii=False, indent=1)
+    dump_json(building_schools, building_school_fpath)
   else:
-    with open(building_school_fpath, 'r') as fp:
-      building_schools = json.load(fp)
+    building_schools = load_json(building_school_fpath)
   slen = len(building_schools)
   for i, school in enumerate(building_schools):
     print(f'[{i}/{slen}]',school['ชื่อโรงเรียน'])

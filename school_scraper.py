@@ -19,8 +19,8 @@ class SchoolScraper:
         else:
             scrape_url(url, fpath)
             gen_index[id] = fpath
-            self.sleep()
             url_inex[url] = fpath
+            self.sleep()
         return fpath, url
 
     def sleep(self):
@@ -40,4 +40,4 @@ if __name__ == '__main__':
             print(f'[{si}/{slen}]', sch_id, end=' ')
             si += 1
 
-            html_file_path, url = scraper(sch_id, school)
+            scraper(sch_id, school)
