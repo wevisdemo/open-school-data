@@ -1,28 +1,25 @@
-from random import shuffle
+import os
 from typing import Union
+from indexer import Index
 from utils import *
 import pandas as pd
 import re
-from province import main as province
 from tqdm import tqdm
 
 
 class SchoolData:
-    def __init__(self, school_id) -> None:
-        assert len(school_id) == 10
-
+    def __init__(self, school_id: str, page_fpaths: Dict) -> None:
+        # assert len(school_id) == 10, school_id + ' is not 10 digits'
         self.school_id = school_id
-        sd = load_school_data(school_id, only=['general'])
-        soup = load_soup(sd['general'])
-        params_dict = prep_param_dict(soup)
-        self.sd = load_school_data(school_id, params_dict)
-        self.save_dir = f'{ROOT_DIR}/school_data/school/{self.school_id}'
-        self.school_id_8_digit = None
+        self.pages: Dict = page_fpaths
+        self.save_dir = os.path.join(
+            ROOT_DIR, 'school_data', 'school', school_id)
 
     def general(self) -> Dict:
         about_school: List = []
-        soup: BeautifulSoup = load_soup(self.sd['general'])
+        soup: BeautifulSoup = load_soup(self.pages['general'])
         table = soup.find('table').find('table', attrs={'width': '521'})
+
         for table_row in table.find_all('tr'):
             cells = table_row.find_all('td')
 
@@ -56,19 +53,26 @@ class SchoolData:
                     dir_name = 'logo'
                 else:
                     continue
-                image_src = div.find('img').attrs['src']
+                image = div.find('img')
+                image_src = None
+                if image is not None:
+                    image_src = image.attrs['src']
                 about_school.append({
                     'key': f'{dir_name}_image_path',
-                    'value': download_image(
-                        parent_url+image_src, image_dir)
+                    'value': image_src
                 })
 
         js_text: str = ' '.join(
             [script.text for script in soup.find_all('script')])
         latlng: str = re.findall('LatLng\((.*)\)', js_text)
         if latlng:
-            latlng_float: List[float] = [
-                float(pos) for pos in latlng[0].split(',')]
+            try:
+                latlng_float: List[float] = [
+                    float(pos) for pos in latlng[0].split(',')]
+            except:
+                latlng_float = None
+                if ',' in latlng[0]:
+                    latlng_float = latlng[0].split(',')
             about_school.append({
                 'key': 'latlng',
                 'value': latlng_float
@@ -78,18 +82,18 @@ class SchoolData:
 
     def student(self) -> Dict:
         try:
-            df: pd.DataFrame = pd.read_html(self.sd['student'])[-1]
+            df: pd.DataFrame = pd.read_html(self.pages['student'])[-1]
         except:
             return None
         col_headers = df.iloc[0]
         df.columns = col_headers
         if len(df) > 2:
             df = df.iloc[1:-1]
-        return df.to_dict(orient='records')
+        return df
 
     def staff(self) -> Dict:
         try:
-            staff_df: pd.DataFrame = pd.read_html(self.sd['staff'])[-1]
+            staff_df: pd.DataFrame = pd.read_html(self.pages['staff'])[-1]
         except:
             return None
         staff_header = staff_df.iloc[:2].values.tolist()
@@ -100,40 +104,40 @@ class SchoolData:
 
         staff_df = staff_df.iloc[2:]
         staff_df.columns = staff_columns
-        return staff_df.to_dict(orient='records')
+        return staff_df
 
     def computer(self) -> Dict:
-        file_path = self.sd['computer_internet']
+        file_path = self.pages['computer_internet']
         try:
             tables = pd.read_html(file_path)
         except:
             return None
-        assert len(tables) >= 5
+        assert len(
+            tables) >= 5, f'only {len(tables)} tables found, expected 5: {file_path}'
         df = tables[5]
-        computer = self._df_to_dict(df)
-        return computer
+        return df
 
     def internet(self) -> Dict:
         try:
-            tables = pd.read_html(self.sd['computer_internet'])
+            tables = pd.read_html(self.pages['computer_internet'])
             df = tables[6]
         except:
             return None
-        return self._df_to_dict(df)
+        return df
 
     def durable_goods(self) -> Dict:
         try:
-            tables = pd.read_html(self.sd['durable_goods'])
+            tables = pd.read_html(self.pages['durable_goods'])
             durable_goods_df: pd.DataFrame = tables[-2]
             durable_goods_df.columns = durable_goods_df.iloc[0]
             durable_goods_df = durable_goods_df.iloc[1:, :]
             durable_goods_df = durable_goods_df.iloc[:-1]
         except:
             return None
-        return durable_goods_df.to_dict(orient='records')
+        return durable_goods_df
 
     def building(self):
-        soup = load_soup(self.sd['building'])
+        soup = load_soup(self.pages['building'])
 
         for comment in soup.children:
             break
@@ -141,7 +145,6 @@ class SchoolData:
         parent_url = re.sub('[^/]*$', '', url[0])
 
         building_data = []
-        image_id = 0
         for row in soup.find_all('div', attrs={'class': 'row'}):
             cols = row.find_all('div', attrs={'class': 'col-md-4'})
             for col in cols:
@@ -159,17 +162,7 @@ class SchoolData:
 
                 for img in images:
                     img_url = parent_url + img['src']
-                    image_path = image_dir + '/' + self.school_id + \
-                        '_' + '{:02}'.format(image_id) + '.jpg'
-                    image_id += 1
-
-                    if not is_path_existed(image_path):
-                        with open(image_path, 'wb') as im_file:
-                            image = requests.get(img_url).content
-                            im_file.write(image)
-
-                    building_images.append(
-                        {'image_url': img_url, 'image_path': image_path})
+                    building_images.append({'image_url': img_url})
 
                 for tab_row in table.find_all('td'):
                     if tab_row.find('a') is None:
@@ -185,29 +178,40 @@ class SchoolData:
                     'images': building_images,
                     'details': building_details
                 })
-        return building_data
+        df = pd.DataFrame(building_data)
+        return df
 
     def save(self) -> Dict[str, Dict[str, Union[Dict, pd.DataFrame]]]:
         makedirs(self.save_dir, exist_ok=True)
 
-        dict_temp = {
+        methods = {
             'building': self.building,
             'computer': self.computer,
-            'durable': self.durable_goods,
+            'durable_goods': self.durable_goods,
             'general': self.general,
             'student': self.student,
             'staff': self.staff,
             'internet': self.internet,
         }
-        for dir, dir_dict in dict_temp.items():
+        temp: Dict = dict()
+
+        for dir in self.pages:
             save_path = self.save_dir + '/' + dir + '.json'
-            if not is_path_existed(save_path):
-                data = dir_dict()
-                dump_json(data, save_path)
+            if dir == 'computer_internet':
+                save_path = self.save_dir + '/' + 'computer' + '.json'
+                data = methods['computer']()
+                # dump_json(data)
+                temp['computer'] = data
+
+                save_path = self.save_dir + '/' + 'internet' + '.json'
+                data = methods['internet']()
+                # dump_json(data)
+                temp['internet'] = data
             else:
-                data = load_json(save_path)
-            dict_temp[dir] = data
-        return dict_temp
+                data = methods[dir]()
+                # dump_json(data, save_path)
+                temp[dir] = data
+        return temp
 
     def _df_to_dict(self, df) -> pd.DataFrame:
         header = ''
@@ -226,25 +230,33 @@ class SchoolData:
 
 if __name__ == '__main__':
     sdi = SchoolDataIndex()
-    if not is_path_existed(sdi.file_path):
-        province()
-    school_ids = list(sdi.school_ids())
-    shuffle(school_ids)
-    school_data_dict: Dict = dict()
-    school_iter = tqdm(school_ids)
+    building_index_fpath = os.path.join(ROOT_DIR, 'building_index.txt')
+    buildings = Index(building_index_fpath)
 
-    file_path = ROOT_DIR + '/school_data/' + 'open_school_data.json'
-    school_data_dict = load_json(file_path)
+    schools_pages_fpath = os.path.join(ROOT_DIR, 'school_pages_index.json')
 
-    for school_id in school_iter:
-        school_iter.desc = 'School: ' + school_id
-        data = None
-        saved_data = None
-        data: SchoolData = SchoolData(school_id)
-        saved_data: Dict = data.save()
-        school_iter.desc = 'skiped ' + school_id
-        school_data_dict[school_id] = saved_data
-        school_iter.update(1)
+    schools_pages = load_json(schools_pages_fpath)
 
-        with open(file_path, 'w') as file:
-            json.dump(school_data_dict, file, ensure_ascii=False, indent=1)
+    schools_data: List = list()
+    sit: int = 0
+    for school_id, data in tqdm(sdi.schools()):
+        sit += 1
+        if school_id not in schools_pages.keys(): continue
+        temp: Dict = schools_pages[school_id].copy()
+        if 'building' in temp.keys():
+            temp.pop('building')
+        if buildings[school_id[2:]] is not None:
+            temp.update({
+                'building': buildings[school_id[2:]]
+            })
+
+        sd = SchoolData(school_id, temp)
+        try:
+            parsed = sd.save()
+        except AssertionError as e:
+            print(e)
+            continue
+        except AttributeError as e:
+            print(e)
+            continue
+        schools_data.append(parsed)

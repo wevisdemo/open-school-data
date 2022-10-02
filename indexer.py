@@ -27,7 +27,6 @@ class Index:
       self.index[key] = val
     if same:
       return
-      
     with open(self.fpath, 'a') as fp:
       fp.write(key + '\t' + val + '\n')
   

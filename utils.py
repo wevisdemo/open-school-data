@@ -41,7 +41,7 @@ def load_json(fpath):
 
 def dump_json(obj, fpath):
   with open(fpath, 'w') as fp:
-    json.dump(obj, fp, indent=1)
+    json.dump(obj, fp, ensure_ascii=False, indent=1)
 
 
 def prep_param_dict(soup: BeautifulSoup) -> Dict[str, str]:
@@ -330,6 +330,14 @@ class SchoolDataIndex:
             schools: Dict = self.data[province_id]['schools']
             for school in schools.keys():
                 yield school
+
+    def schools(self):
+        if self.data is None:
+            self.load()
+        for province_id in self.data:
+            schools: Dict = self.data[province_id]['schools']
+            for id, data in schools.items():
+                yield id, data
 
     def school_datas(self):
         if self.data is None:
