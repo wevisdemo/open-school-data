@@ -14,3 +14,14 @@ docker run -it --rm \
   -v $(pwd)/out:/usr/src/app/out \
   opensd
 ```
+
+## Run it locally
+Install requirements
+```
+pip install -r requirements.txt
+```
+
+run it uting shell
+```
+./run.sh
+```

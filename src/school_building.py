@@ -1,3 +1,4 @@
+import os
 from province import province_school_list
 from utils import *
 from tqdm import tqdm
@@ -6,7 +7,7 @@ from indexer import Index
 area_index = Index(ROOT_DIR + '/area_index.txt')
 obec_url_index = Index(ROOT_DIR + '/obec_url_index.txt')
 building_index = Index(ROOT_DIR + '/building_index.txt')
-index_page_path = 'buidling.html'
+index_page_path =  os.path.join(HTML_ROOT_DIR, 'buidling.html')
 index_page_url = 'https://bobec.bopp-obec.info/build_show.php'
 parent_url = re.sub('[^/]*$', '', index_page_url)
 
@@ -60,7 +61,7 @@ if __name__ == '__main__':
       sleep(uniform(0.3, 1))
       area_index[area_code] = fpath
   
-  building_school_fpath = ROOT_DIR + '/obec_schools_index.json'
+  building_school_fpath = os.path.join(ROOT_DIR, 'obec_schools_index.json')
 
   if not is_path_existed(building_school_fpath):
     for acode, fpath in tqdm(area_index, 'school in area'):
