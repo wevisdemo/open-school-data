@@ -1,6 +1,6 @@
 # Open School Data
 
-## Using Docker
+## 🐳 Using Docker
 First, build image
 
 ```sh
@@ -21,7 +21,7 @@ Install requirements
 pip install -r requirements.txt
 ```
 
-run it uting shell
+run it
 ```
 ./run.sh
 ```
