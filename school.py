@@ -5,7 +5,7 @@ from utils import *
 import pandas as pd
 import re
 from tqdm import tqdm
-
+data_index = Index(os.path.join(ROOT_DIR, 'result_index.txt'))
 
 class SchoolData:
     def __init__(self, school_id: str, page_fpaths: Dict) -> None:
@@ -16,9 +16,14 @@ class SchoolData:
             ROOT_DIR, 'school_data', 'school', school_id)
 
     def general(self) -> Dict:
-        about_school: List = []
+        about_school: Dict = dict()
         soup: BeautifulSoup = load_soup(self.pages['general'])
         table = soup.find('table').find('table', attrs={'width': '521'})
+        for comment in soup.children:
+            break
+        url: str = re.findall('url: (.*)\n', comment)[0]
+
+        parent_url: str = re.sub('[^/]*$', '', url)
 
         for table_row in table.find_all('tr'):
             cells = table_row.find_all('td')
@@ -27,19 +32,15 @@ class SchoolData:
                 key_name: str = clean_text(cells[0].text)
                 value: str = clean_text(cells[1].text)
 
+                _id = 0
                 if cells[1].find_all('a'):
-                    value: List = [{'text': a_tag.text, 'href': a_tag.attrs['href']}
-                                   for a_tag in cells[1].find_all('a') if a_tag.text]
+                    for a_tag in cells[1].find_all('a'):
+                        if not a_tag.text: continue
+                        about_school.update(
+                    {f'url_text_{_id}': a_tag.text, f'url_{_id}': parent_url + a_tag.attrs['href']})
 
-                about_school.append({'key': key_name, 'value': value})
-            else:
-                about_school.append({'value': clean_text(cells[0].text)})
+                about_school.update({key_name: value})
 
-        for comment in soup.children:
-            break
-        url: str = re.findall('url: (.*)\n', comment)[0]
-
-        parent_url: str = re.sub('[^/]*$', '', url)
         image_dir: str = SCRAPED_FILE_DIRS['general']+'/image'
 
         if not is_path_existed(image_dir):
@@ -57,10 +58,7 @@ class SchoolData:
                 image_src = None
                 if image is not None:
                     image_src = image.attrs['src']
-                about_school.append({
-                    'key': f'{dir_name}_image_path',
-                    'value': image_src
-                })
+                    about_school.update({f'{dir_name}_image_path' : parent_url + image_src})
 
         js_text: str = ' '.join(
             [script.text for script in soup.find_all('script')])
@@ -73,12 +71,9 @@ class SchoolData:
                 latlng_float = None
                 if ',' in latlng[0]:
                     latlng_float = latlng[0].split(',')
-            about_school.append({
-                'key': 'latlng',
-                'value': latlng_float
-            })
-
-        return about_school
+            about_school.update({'latlng' : latlng_float})
+        df = pd.DataFrame(about_school)
+        return df
 
     def student(self) -> Dict:
         try:
@@ -107,20 +102,25 @@ class SchoolData:
         return staff_df
 
     def computer(self) -> Dict:
-        file_path = self.pages['computer_internet']
         try:
-            tables = pd.read_html(file_path)
+            tables = pd.read_html(self.pages['computer_internet'])
+            for tab in tables:
+                if any('จำนวนคอมพิวเตอร์เพื่อการเรียนการสอน' == tab):
+                    df = tab
+                    break
+            df = self._df_to_dict(df)
         except:
             return None
-        assert len(
-            tables) >= 5, f'only {len(tables)} tables found, expected 5: {file_path}'
-        df = tables[5]
         return df
 
     def internet(self) -> Dict:
         try:
             tables = pd.read_html(self.pages['computer_internet'])
-            df = tables[6]
+            for tab in tables:
+                if any('ระบบเครือข่ายอินเทอร์เน็ตที่โรงเรียนเช่าเอง' == tab):
+                    df = tab
+                    break
+            df = self._df_to_dict(df)
         except:
             return None
         return df
@@ -160,9 +160,11 @@ class SchoolData:
                 if not is_path_existed(image_dir):
                     makedirs(image_dir)
 
+                im_rid = 0
                 for img in images:
                     img_url = parent_url + img['src']
                     building_images.append({'image_url': img_url})
+                    im_rid += 1
 
                 for tab_row in table.find_all('td'):
                     if tab_row.find('a') is None:
@@ -172,12 +174,12 @@ class SchoolData:
                         key, val = re.sub(
                             '\s+', ' ', text).split(':', maxsplit=1)
                         building_details.update({key.strip(): val.strip()})
-
-                building_data.append({
-                    'name': heading.text,
-                    'images': building_images,
-                    'details': building_details
-                })
+                temp = {'name': heading.text, }
+                temp.update(building_details)
+                if building_images:
+                    for i, im in enumerate(building_images):
+                        temp.update({f'{key}_{i}': val for key, val in im.items()})
+                building_data.append(temp)
         df = pd.DataFrame(building_data)
         return df
 
@@ -196,36 +198,41 @@ class SchoolData:
         temp: Dict = dict()
 
         for dir in self.pages:
-            save_path = self.save_dir + '/' + dir + '.json'
             if dir == 'computer_internet':
-                save_path = self.save_dir + '/' + 'computer' + '.json'
-                data = methods['computer']()
-                # dump_json(data)
-                temp['computer'] = data
-
-                save_path = self.save_dir + '/' + 'internet' + '.json'
-                data = methods['internet']()
-                # dump_json(data)
-                temp['internet'] = data
+                for dir in ['computer', 'internet']:
+                    data = self.wirte_file(methods[dir], dir)
+                    temp[dir] = data
             else:
-                data = methods[dir]()
-                # dump_json(data, save_path)
+                data = self.wirte_file(methods[dir], dir)
                 temp[dir] = data
         return temp
 
-    def _df_to_dict(self, df) -> pd.DataFrame:
+    def wirte_file(self, caller, name):
+        fpath = os.path.join(self.save_dir, f'{name}.csv')
+        ix = self.school_id + '/' + name
+        if data_index[ix] is not None:
+            fpath = data_index[ix]
+            try:
+                df = pd.read_csv(fpath)
+                return df
+            except:
+                pass
+
+        data: pd.DataFrame = caller()
+        data.to_csv(fpath, index=False)
+        data_index[ix] = fpath
+        return data
+
+    def _df_to_dict(self, df):
         header = ''
-        rows = {}
+        rows = []
         for i, row in df.iterrows():
             if len(row.unique()) != len(row):
                 header = row[0]
             else:
                 row_list = row.values.tolist()
-                if len(row_list) == 2:
-                    if header not in rows.keys():
-                        rows[header] = dict()
-                    rows[header][row_list[0]] = row_list[1]
-        return rows
+                rows.append([header] + row_list)
+        return pd.DataFrame(rows)
 
 
 if __name__ == '__main__':
@@ -238,16 +245,18 @@ if __name__ == '__main__':
     schools_pages = load_json(schools_pages_fpath)
 
     schools_data: List = list()
+    school_dfs = dict()
     sit: int = 0
     for school_id, data in tqdm(sdi.schools()):
         sit += 1
-        if school_id not in schools_pages.keys(): continue
+        if school_id not in schools_pages.keys():
+            continue
         temp: Dict = schools_pages[school_id].copy()
         if 'building' in temp.keys():
             temp.pop('building')
-        if buildings[school_id[2:]] is not None:
+        if buildings[school_id[4:]] is not None:
             temp.update({
-                'building': buildings[school_id[2:]]
+                'building': buildings[school_id[4:]]
             })
 
         sd = SchoolData(school_id, temp)
@@ -259,4 +268,18 @@ if __name__ == '__main__':
         except AttributeError as e:
             print(e)
             continue
-        schools_data.append(parsed)
+        for dir in parsed:
+            if parsed[dir] is None:
+                print(school_id, dir)
+                continue
+            assert isinstance(parsed[dir], pd.DataFrame), type(parsed[dir])
+            tdf = parsed[dir]
+            tdf['school_id'] = school_id
+            if dir not in school_dfs.keys():
+                school_dfs[dir] = [parsed[dir]]
+            else:
+                school_dfs[dir].append(parsed[dir])
+    for kdf in school_dfs:
+        fpath = os.path.join(ROOT_DIR, 'school_data', f'{kdf}.csv')
+        _df = pd.concat(school_dfs[kdf], ignore_index=True)
+        _df.to_csv(fpath)
