@@ -1,7 +1,7 @@
 import os
 from typing import Union
-from indexer import Index
-from utils import *
+from src.indexer import Index
+from src.utils import *
 import pandas as pd
 import re
 from tqdm import tqdm
@@ -102,38 +102,28 @@ class SchoolData:
         return staff_df
 
     def computer(self) -> Dict:
-        try:
-            tables = pd.read_html(self.pages['computer_internet'])
-            for tab in tables:
-                if any('จำนวนคอมพิวเตอร์เพื่อการเรียนการสอน' == tab):
-                    df = tab
-                    break
-            df = self._df_to_dict(df)
-        except:
-            return None
-        return df
+        return self._find_html_table('computer_internet', 'จำนวนคอมพิวเตอร์เพื่อการเรียนการสอน')
+
+    def _find_html_table(self, page, keyword):
+        fpath = self.pages[page]
+        tables = pd.read_html(fpath)
+        for table in tables:
+            table_bool = (keyword == table)
+            if table_bool.any().any():
+                df = table
+                df = self._df_to_dict(df)
+                return df
+
 
     def internet(self) -> Dict:
-        try:
-            tables = pd.read_html(self.pages['computer_internet'])
-            for tab in tables:
-                if any('ระบบเครือข่ายอินเทอร์เน็ตที่โรงเรียนเช่าเอง' == tab):
-                    df = tab
-                    break
-            df = self._df_to_dict(df)
-        except:
-            return None
-        return df
+        return self._find_html_table('computer_internet', 'ระบบเครือข่ายอินเทอร์เน็ตที่โรงเรียนเช่าเอง')
 
     def durable_goods(self) -> Dict:
-        try:
-            tables = pd.read_html(self.pages['durable_goods'])
-            durable_goods_df: pd.DataFrame = tables[-2]
-            durable_goods_df.columns = durable_goods_df.iloc[0]
-            durable_goods_df = durable_goods_df.iloc[1:, :]
-            durable_goods_df = durable_goods_df.iloc[:-1]
-        except:
-            return None
+        tables = pd.read_html(self.pages['durable_goods'])
+        durable_goods_df: pd.DataFrame = tables[-2]
+        durable_goods_df.columns = durable_goods_df.iloc[0]
+        durable_goods_df = durable_goods_df.iloc[1:, :]
+        durable_goods_df = durable_goods_df.iloc[:-1]
         return durable_goods_df
 
     def building(self):

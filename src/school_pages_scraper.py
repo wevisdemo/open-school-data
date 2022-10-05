@@ -4,7 +4,7 @@ from time import sleep
 from tkinter import W
 from typing import Dict
 from tqdm import tqdm
-from indexer import Index
+from src.indexer import Index
 from utils import ROOT_DIR, SCRAPED_FILE_DIRS, dump_json, load_json, scrape_url
 
 

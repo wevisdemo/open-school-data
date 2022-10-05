@@ -1,5 +1,6 @@
 from datetime import date
 from os import makedirs
+import os
 from random import randrange, uniform
 from time import sleep
 from typing import Dict, List, Tuple
@@ -8,6 +9,8 @@ import re
 import json
 import requests
 from os import path, makedirs
+from src.indexer import Index
+from src.exeptions import *
 
 INDEX_PAGE_URL = 'https://data.bopp-obec.info/emis/index.php'
 
@@ -15,24 +18,23 @@ ROOT_DIR = 'out/' + date.today().strftime('%Y')
 HTML_ROOT_DIR = ROOT_DIR+'/html'
 BASE_URL = 'https://data.bopp-obec.info/emis'
 SCRAPING_URLS = {
-    'general': BASE_URL+'/schooldata-view.php',
-    'student': BASE_URL+'/schooldata-view_student.php',
-    'staff': BASE_URL+'/schooldata-view_techer.php',
-    'computer_internet': BASE_URL+'/schooldata-view_com-internet.php',
-    'building': BASE_URL+'/schooldata-view_bobec.php',
-    'durable_goods': BASE_URL+'/schooldata-view_mobec.php'
+    'general': BASE_URL + '/schooldata-view.php',
+    'student': BASE_URL + '/schooldata-view_student.php',
+    'staff': BASE_URL + '/schooldata-view_techer.php',
+    'computer_internet': BASE_URL + '/schooldata-view_com-internet.php',
+    'building': BASE_URL + '/schooldata-view_bobec.php',
+    'durable_goods': BASE_URL + '/schooldata-view_mobec.php'
 }
 
 SCRAPED_FILE_DIRS = {}
-
 for d in SCRAPING_URLS:
     scrape_dir = HTML_ROOT_DIR+'/school/'+d
     SCRAPED_FILE_DIRS[d] = scrape_dir
-
 SCRAPED_FILE_DIRS['province'] = HTML_ROOT_DIR+'/province'
 
 SCHOOL_DATA_FEILDS = list(SCRAPING_URLS)
 
+url_index = Index(os.path.join(ROOT_DIR, 'url_index.txt'))
 
 def load_json(fpath):
   with open(fpath, 'r') as fp:
@@ -67,11 +69,14 @@ def pages_in_general_page(soup):
         key: re.sub('^.*/', '', val)
         for key, val in SCRAPING_URLS.items()
     }
+
     url_dict: Dict = dict()
 
     for anchor in soup.find_all('a'):
-        topic = [kurl for kurl, iurl in interested_urls.items()
-                 if iurl in anchor.attrs['href']]
+        topic = [
+            kurl for kurl, iurl in interested_urls.items()
+            if iurl in anchor.attrs['href']
+        ]
         if topic:
             url_dict[topic[0]] = BASE_URL + '/' + anchor.attrs['href']
     return url_dict
@@ -122,11 +127,6 @@ def download_image(image_url: str, image_file_dir: str):
             im_file.write(image)
 
     return image_file_path
-
-
-class StatusCodeException(ValueError):
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
 
 
 def scrape_url(url, file_path) -> Dict:

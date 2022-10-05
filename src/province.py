@@ -1,7 +1,12 @@
 from time import sleep
-from utils import *
+from src.utils import *
 import re
 from tqdm import tqdm
+
+province_root_dir: str = os.path.join(HTML_ROOT_DIR, 'province')
+index_html_path: str = os.path.join(province_root_dir, 'index.html')
+index_url: str = 'https://data.bopp-obec.info/emis/index.php'
+parent_url: str = re.sub('[^/]*$', '', index_url)
 
 
 def select_for_name(options: List) -> str:
@@ -64,59 +69,65 @@ def reshape_school_data_table(list_of_school) -> Dict:
     return new_school_data
 
 
-def _thai_char_len(text) -> int:
-    return len(re.sub('[^ก-า]', '', text))
+def province_dropdown_options(options):
+    province_url_param: str = 'province'
+    provinces: List = list()
+    for option in options:
+        # place holder option
+        if 'value' not in option.attrs.keys() or not option.attrs['value']:
+            continue
+
+        key_name = re.sub('\s*\d+\s*\.\s*', '', option.text)
+        value = option.attrs['value']
+        province_id = re.findall(f'{province_url_param}=(.*)&?', value)
+        params = re.sub('^.*\?', '', value)
+        province = {
+            'name': key_name,
+            'url': parent_url + 'school_edu_p.php'+f'?{params}',
+            'id': province_id[0]}
+
+        provinces.append(province)
+    return provinces
 
 
 def main():
     sdi = SchoolDataIndex()
-    province_root_dir: str = f'{HTML_ROOT_DIR}/province'
-    index_html_path: str = f'{province_root_dir}/index.html'
-    index_url: str = 'https://data.bopp-obec.info/emis/index.php'
-    parent_url: str = re.sub('[^/]*$', '', index_url)
+
     if not is_path_existed(index_html_path):
         scrape_url(index_url, index_html_path)
 
     soup: BeautifulSoup = load_soup(index_html_path)
 
     province_select_name: str = 'จังหวัด/ศธจ.'
-    province_url_param: str = 'province'
 
     for select_tag_soup in soup.find_all('select'):
         options = select_tag_soup.findAll('option')
         select_tag_for = select_for_name(options=options)
         if select_tag_for != province_select_name:
             continue
-
-        for option in options:
-            if 'value' not in option.attrs.keys() or not option.attrs['value']:
-                continue
-
-            key_name = re.sub('\s*\d+\s*\.\s*', '', option.text)
-            value = option.attrs['value']
-            province_id = re.findall(f'{province_url_param}=(.*)&?', value)
-            params = re.sub('^.*\?', '', value)
-            province = {'name': key_name, 'url': parent_url +
-                        'school_edu_p.php'+f'?{params}', 'id': province_id[0]}
-            sdi.add_province(province_id[0], province)
+        provinces = province_dropdown_options(options)
+        for province in provinces:
+            sdi.add_province(province['id'], province)
 
     # download all province web page
     it = tqdm(sdi, desc="Download Provinces")
-    province_name_max_len = max(
-        [_thai_char_len(province['name']) for province in sdi])
+
     for province in it:
-        it.desc = province['name'] + \
-            (province_name_max_len - _thai_char_len(province['name'])) * " "
+        it.desc = province['name']
         file_path = SCRAPED_FILE_DIRS['province'] + \
             '/' + province['id'] + '.html'
         province['html_file_path'] = file_path
-        if not is_path_existed(file_path):
-            scrape_url(province['url'], file_path)
+        url = province['url']
+        if url_index[url] is None:
+            scrape_url(url, file_path)
             sleep(uniform(0.5, 1))
+
         school_list = province_school_list(province['html_file_path'])
         school_list = reshape_school_data_table(school_list)
         sdi.add_schools(
-            province['id'], school_list.keys(), school_list.values())
+            province['id'],
+            school_list.keys(),
+            school_list.values())
         it.update(1)
 
     sdi.save()

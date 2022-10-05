@@ -1,6 +1,6 @@
 import os
-from province import province_school_list
-from utils import *
+from src.province import province_school_list
+from src.utils import *
 from tqdm import tqdm
 from indexer import Index
 
@@ -11,27 +11,6 @@ index_page_path =  os.path.join(HTML_ROOT_DIR, 'buidling.html')
 index_page_url = 'https://bobec.bopp-obec.info/build_show.php'
 parent_url = re.sub('[^/]*$', '', index_page_url)
 
-class SchoolScraper:
-  def __init__(self) -> None:
-    pass
-
-  def __call__(self, id, data):
-    fpath = (SCRAPED_FILE_DIRS['building'] + '/obec_' + id + '.html')
-    url = parent_url + data['href']
-    if obec_url_index[url] is not None:
-      print('existed')
-      building_index[id] = fpath
-    else:
-      scrape_url(url, fpath)
-      building_index[id] = fpath
-      self.sleep()
-      obec_url_index[url] = fpath
-    return fpath, url
-
-  def sleep(self):
-    sleep_for = uniform(0.3, 1)
-    print('sleeping..', sleep_for)
-    sleep(sleep_for)
 
 if __name__ == '__main__':
   building_schools = list()
