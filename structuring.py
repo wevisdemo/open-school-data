@@ -58,7 +58,7 @@ def main():
 
 
     school_dfs = dict()
-    school_ids = list(sdi.school_ids())[:100]
+    school_ids = list(sdi.school_ids())
     for school_id in tqdm(school_ids):
         if school_id not in schools_pages.keys():
             continue
