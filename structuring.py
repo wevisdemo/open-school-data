@@ -15,7 +15,7 @@ def save(dataframes: Dict[str, pd.DataFrame], save_paths: Dict[str, str]):
     for kdf in dataframes:
         df = dataframes[kdf]
         fpath = save_paths[kdf]
-        df.to_csv(fpath)
+        df.to_csv(fpath, index=False)
 
 
 def postprocess(dataframes: Dict[str, pd.DataFrame]):
@@ -26,7 +26,7 @@ def postprocess(dataframes: Dict[str, pd.DataFrame]):
         mapper = mappers[kdf]
         mapper = {old: new for old, new in mapper.items() if new}
         
-        df: pd.DataFrame = pd.concat(dataframes[kdf])
+        df: pd.DataFrame = pd.concat(dataframes[kdf], ignore_index=True)
 
         if kdf == 'durable_goods':
             df.drop('ลำดับ', axis=1, inplace=True)
@@ -58,7 +58,7 @@ def main():
 
 
     school_dfs = dict()
-    school_ids = list(sdi.school_ids())
+    school_ids = list(sdi.school_ids())[:100]
     for school_id in tqdm(school_ids):
         if school_id not in schools_pages.keys():
             continue
@@ -91,9 +91,8 @@ def main():
     save_fpaths: Dict[str, str] = dict()
     for feild in school_dfs:
         fpath = os.path.join(ROOT_DIR, 'school_data', f'{feild}.csv')
-        if not is_path_existed(fpath): continue
         save_fpaths[feild] = fpath
-    
+
     school_dfs = postprocess(school_dfs)
     save(school_dfs, save_fpaths)
 

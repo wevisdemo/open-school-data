@@ -81,3 +81,4 @@ mapping from table column C to D by configering in [`header_mapper.json`](header
     feild_name: {old_col_name_C0: new_col_name_D0, old_col_name_C1: new_col_name_D1, ...},
 }
 ```
+if the new column name D is empty, then it will be the same.
