@@ -1,7 +1,7 @@
 import os
 from typing import Union
-from src.indexer import Index
-from src.utils import *
+from helpers.indexer import Index
+from helpers.utils import *
 import pandas as pd
 import re
 from tqdm import tqdm
@@ -9,7 +9,6 @@ data_index = Index(os.path.join(ROOT_DIR, 'result_index.txt'))
 
 class SchoolData:
     def __init__(self, school_id: str, page_fpaths: Dict) -> None:
-        # assert len(school_id) == 10, school_id + ' is not 10 digits'
         self.school_id = school_id
         self.pages: Dict = page_fpaths
         self.save_dir = os.path.join(
@@ -64,45 +63,48 @@ class SchoolData:
             [script.text for script in soup.find_all('script')])
         latlng: str = re.findall('LatLng\((.*)\)', js_text)
         if latlng:
-            try:
-                latlng_float: List[float] = [
-                    float(pos) for pos in latlng[0].split(',')]
-            except:
-                latlng_float = None
-                if ',' in latlng[0]:
-                    latlng_float = latlng[0].split(',')
-            about_school.update({'latlng' : latlng_float})
+            about_school.update({'latlng' : latlng})
         df = pd.DataFrame(about_school)
         return df
 
     def student(self) -> Dict:
-        try:
-            df: pd.DataFrame = pd.read_html(self.pages['student'])[-1]
-        except:
-            return None
-        col_headers = df.iloc[0]
-        df.columns = col_headers
-        if len(df) > 2:
-            df = df.iloc[1:-1]
+        df: pd.DataFrame = self._find_html_table('student', 'ชั้น/เพศ')
+        if df is not None:
+            col_headers = df.iloc[0]
+            df.columns = col_headers
+            if len(df) > 2:
+                df = df.iloc[1:-1]
         return df
 
     def staff(self) -> Dict:
-        try:
-            staff_df: pd.DataFrame = pd.read_html(self.pages['staff'])[-1]
-        except:
-            return None
-        staff_header = staff_df.iloc[:2].values.tolist()
-        staff_columns = [
-            col1 if col1 == col2 else col1+'_'+col2
-            for col1, col2 in zip(staff_header[0], staff_header[1])
-        ]
-
-        staff_df = staff_df.iloc[2:]
-        staff_df.columns = staff_columns
+        staff_df: pd.DataFrame = self._find_html_table('staff', 'วิทยฐานะ')
+        if staff_df is not None:
+            staff_header = staff_df.iloc[:2].values.tolist()
+            staff_columns = [
+                col1 if col1 == col2 else col1+'_'+col2
+                for col1, col2 in zip(staff_header[0], staff_header[1])
+            ]
+            staff_df = staff_df.iloc[2:]
+            staff_df.columns = staff_columns
         return staff_df
 
     def computer(self) -> Dict:
-        return self._find_html_table('computer_internet', 'จำนวนคอมพิวเตอร์เพื่อการเรียนการสอน')
+        df = self._find_html_table('computer_internet', 'จำนวนคอมพิวเตอร์เพื่อการเรียนการสอน')
+        if df is None: return
+        header = ''
+        rows = dict()
+        for _, row in df.iterrows():
+            if len(row.unique()) != len(row):
+                header = row[0]
+            else:
+                row_list = row.values.tolist()
+                col, cell = row_list
+                if col not in rows.keys():
+                    rows[col] = dict()
+                rows[col][header] = cell
+        df = pd.DataFrame(rows)
+        df.reset_index(inplace=True)
+        return df
 
     def _find_html_table(self, page, keyword):
         fpath = self.pages[page]
@@ -111,20 +113,32 @@ class SchoolData:
             table_bool = (keyword == table)
             if table_bool.any().any():
                 df = table
-                df = self._df_to_dict(df)
                 return df
 
 
     def internet(self) -> Dict:
-        return self._find_html_table('computer_internet', 'ระบบเครือข่ายอินเทอร์เน็ตที่โรงเรียนเช่าเอง')
+        df = self._find_html_table('computer_internet', 'ระบบเครือข่ายอินเทอร์เน็ตที่โรงเรียนเช่าเอง')
+        if df is None: return
+        header = ''
+        rows = dict()
+        for i, row in df.iterrows():
+            if len(row.unique()) != len(row):
+                header = row[0]
+            else:
+                row_list = row.values.tolist()
+                col, cell = row_list
+                rows[header+'_'+col] = cell
+
+        df = pd.DataFrame([rows.values()], columns=rows.keys())
+        return df
 
     def durable_goods(self) -> Dict:
-        tables = pd.read_html(self.pages['durable_goods'])
-        durable_goods_df: pd.DataFrame = tables[-2]
-        durable_goods_df.columns = durable_goods_df.iloc[0]
-        durable_goods_df = durable_goods_df.iloc[1:, :]
-        durable_goods_df = durable_goods_df.iloc[:-1]
-        return durable_goods_df
+        df = self._find_html_table('durable_goods', 'จำนวนรอจำหน่าย')
+        if df is not None:
+            df.columns = df.iloc[0]
+            df = df.iloc[1:, :]
+            df = df.iloc[:-1]
+        return df
 
     def building(self):
         soup = load_soup(self.pages['building'])
@@ -199,77 +213,17 @@ class SchoolData:
 
     def wirte_file(self, caller, name):
         fpath = os.path.join(self.save_dir, f'{name}.csv')
-        ix = self.school_id + '/' + name
+        ix = self.school_id + '.' + name
         if data_index[ix] is not None:
             fpath = data_index[ix]
             try:
                 df = pd.read_csv(fpath)
                 return df
-            except:
-                pass
+            except pd.errors.EmptyDataError as e:
+                print(fpath, e)
 
         data: pd.DataFrame = caller()
-        data.to_csv(fpath, index=False)
-        data_index[ix] = fpath
-        return data
-
-    def _df_to_dict(self, df):
-        header = ''
-        rows = []
-        for i, row in df.iterrows():
-            if len(row.unique()) != len(row):
-                header = row[0]
-            else:
-                row_list = row.values.tolist()
-                rows.append([header] + row_list)
-        return pd.DataFrame(rows)
-
-
-if __name__ == '__main__':
-    sdi = SchoolDataIndex()
-    building_index_fpath = os.path.join(ROOT_DIR, 'building_index.txt')
-    buildings = Index(building_index_fpath)
-
-    schools_pages_fpath = os.path.join(ROOT_DIR, 'school_pages_index.json')
-
-    schools_pages = load_json(schools_pages_fpath)
-
-    schools_data: List = list()
-    school_dfs = dict()
-    sit: int = 0
-    for school_id, data in tqdm(sdi.schools()):
-        sit += 1
-        if school_id not in schools_pages.keys():
-            continue
-        temp: Dict = schools_pages[school_id].copy()
-        if 'building' in temp.keys():
-            temp.pop('building')
-        if buildings[school_id[4:]] is not None:
-            temp.update({
-                'building': buildings[school_id[4:]]
-            })
-
-        sd = SchoolData(school_id, temp)
-        try:
-            parsed = sd.save()
-        except AssertionError as e:
-            print(e)
-            continue
-        except AttributeError as e:
-            print(e)
-            continue
-        for dir in parsed:
-            if parsed[dir] is None:
-                print(school_id, dir)
-                continue
-            assert isinstance(parsed[dir], pd.DataFrame), type(parsed[dir])
-            tdf = parsed[dir]
-            tdf['school_id'] = school_id
-            if dir not in school_dfs.keys():
-                school_dfs[dir] = [parsed[dir]]
-            else:
-                school_dfs[dir].append(parsed[dir])
-    for kdf in school_dfs:
-        fpath = os.path.join(ROOT_DIR, 'school_data', f'{kdf}.csv')
-        _df = pd.concat(school_dfs[kdf], ignore_index=True)
-        _df.to_csv(fpath)
+        if data is not None:
+            data.to_csv(fpath, index=False)
+            data_index[ix] = fpath
+            return data

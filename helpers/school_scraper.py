@@ -1,6 +1,6 @@
 from random import shuffle, uniform
-from src.indexer import Index
-from src.utils import *
+from helpers.indexer import Index
+from helpers.utils import *
 from tqdm import tqdm
 
 
@@ -15,6 +15,8 @@ class SchoolScraper:
             scrape_url(url, fpath)
             url_index[url] = fpath
             self.sleep()
+        else:
+            return url_index[url], url
         return fpath, url
 
     def sleep(self):

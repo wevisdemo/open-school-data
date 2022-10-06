@@ -1,5 +1,5 @@
 from time import sleep
-from src.utils import *
+from helpers.utils import *
 import re
 from tqdm import tqdm
 

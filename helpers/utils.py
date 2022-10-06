@@ -9,8 +9,8 @@ import re
 import json
 import requests
 from os import path, makedirs
-from src.indexer import Index
-from src.exeptions import *
+from helpers.indexer import Index
+from helpers.exeptions import *
 
 INDEX_PAGE_URL = 'https://data.bopp-obec.info/emis/index.php'
 

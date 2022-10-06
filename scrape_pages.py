@@ -2,15 +2,19 @@
 run trough all interested pages on https://data.bopp-obec.info/emis, and save it.
 """
 import os
+import logging
 from typing import Dict, List
-from src.exeptions import StatusCodeException
-from src.indexer import Index
-from src.province import main as province_scraper
-from src.school_scraper import SchoolScraper
+from helpers.exeptions import StatusCodeException
+from helpers.indexer import Index
+from helpers.province import main as province_scraper
+from helpers.school_scraper import SchoolScraper
 from tqdm import tqdm
-from src.utils import ROOT_DIR, SCRAPED_FILE_DIRS, SchoolDataIndex, dump_json, is_path_existed, load_json, load_soup, pages_in_general_page, url_index
+from helpers.utils import ROOT_DIR, SCRAPED_FILE_DIRS, SchoolDataIndex, dump_json, is_path_existed, load_json, load_soup, pages_in_general_page, url_index
 
 sdi: SchoolDataIndex = SchoolDataIndex()
+
+logger_fpath = os.path.join(ROOT_DIR, 'open_school_data.log')
+logging.basicConfig(filename=logger_fpath)
 
 
 def school_subpages(index: Index) -> Dict:
@@ -27,7 +31,7 @@ def school_subpages(index: Index) -> Dict:
         try:
             soup = load_soup(file_path)
         except AssertionError as e:
-            print(e.with_traceback(e.__traceback__))
+            logging.error(e)
             continue
 
         if soup is None:
@@ -53,7 +57,7 @@ def school_index_page_scraper(general_page_index: Index) -> None:
                 fpath, _ = general_page_scraper(school_id, url)
                 general_page_index[school_id] = fpath
             except StatusCodeException as e:
-                print(e)
+                logging.error(e)
 
 
 def subpage_scraper(school_id: str, page_urls: Dict):
@@ -70,7 +74,7 @@ def subpage_scraper(school_id: str, page_urls: Dict):
             try:
                 page_fpath, _ = scraper(school_id, url)
             except StatusCodeException as e:
-                print(e)
+                logging.error(e)
         else:
             page_fpath = url_index[url]
             

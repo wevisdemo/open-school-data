@@ -1,8 +1,8 @@
 import os
-from src.utils import *
+from helpers.utils import *
 from tqdm import tqdm
-from src.school_scraper import SchoolScraper
-from src.indexer import Index
+from helpers.school_scraper import SchoolScraper
+from helpers.indexer import Index
 
 area_index = Index(ROOT_DIR + '/area_index.txt')
 building_index = Index(ROOT_DIR + '/building_index.txt')
@@ -97,11 +97,15 @@ def school_pages():
 
 
 def school_building_scraper(school_pages):
+
     scraper = SchoolScraper(SCRAPED_FILE_DIRS['building'])
     parent_url = re.sub('[^/]*$', '', index_page_url)
     for school in tqdm(school_pages, 'scraping school'):
         url = parent_url + school['href']
-        scraper(school['รหัส percode'], url)
+        school_code = school['รหัส percode']
+        fpath, _ = scraper(school_code, url)
+        building_index[school_code] = fpath
+
 
 def main():
 

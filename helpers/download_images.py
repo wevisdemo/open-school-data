@@ -3,8 +3,8 @@ from random import uniform
 import re
 from time import sleep
 import requests
-from src.indexer import Index
-from src.utils import HTML_ROOT_DIR, ROOT_DIR, load_soup
+from helpers.indexer import Index
+from helpers.utils import HTML_ROOT_DIR, ROOT_DIR, load_soup
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 

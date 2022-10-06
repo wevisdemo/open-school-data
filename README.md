@@ -29,3 +29,38 @@ run it
 ## Overview
 
 ![](/imgs/overview.png)
+
+## Output Directory
+```
+out
+└── <year>
+    ├── html
+    │   ├── area
+    │   ├── buidling.html
+    │   ├── province
+    │   └── school
+    ├── school_data
+    │   ├── school
+    │   │   ├── <school_id>
+    │   │   │   └── <...>.csv
+    │   │   └── <schol_id>
+    │   │       ├── building.csv
+    │   │       ├── computer.csv
+    │   │       ├── durable_goods.csv
+    │   │       ├── general.csv
+    │   │       ├── internet.csv
+    │   │       ├── staff.csv
+    │   │       └── student.csv
+    │   ├── building.csv
+    │   ├── computer.csv
+    │   ├── durable_goods.csv
+    │   ├── general.csv
+    │   ├── internet.csv
+    │   ├── staff.csv
+    │   └── student.csv
+    ├── open_school_data.log
+    ├── <indexer..>
+    └── <indexer..>
+```
+
+

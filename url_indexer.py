@@ -1,15 +1,17 @@
 import os
 from typing import List
-from src.utils import HTML_ROOT_DIR, url_index
+from helpers.utils import HTML_ROOT_DIR, url_index
 from tqdm import tqdm
 
 
 def get_url(fpath):
+    comment = ''
     with open(fpath, 'r') as fp:
-        file = fp.read()
+        c = ''
+        while c != '>':
+            c = fp.read(1)
+            comment += c
 
-    end = file.index('-->')
-    comment = file[:end]
     for line in comment.splitlines()[1:]:
         key, val = line.split(maxsplit=1)
         if key == 'url:':
