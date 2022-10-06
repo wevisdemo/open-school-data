@@ -1,3 +1,6 @@
+"""
+parsing from orginal html to wanted file format
+"""
 import logging
 from helpers.school import SchoolData
 from helpers.utils import *
@@ -33,7 +36,7 @@ def postprocess(dataframes: Dict[str, pd.DataFrame]):
 
         df = df[[primary_key] + [col for col in df.columns if col != primary_key]]\
             .rename(mapper, axis=1)\
-            .fillna('-')
+            .fillna('')
         
         pp_dataframes[kdf] = df
     return pp_dataframes

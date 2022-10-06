@@ -1,3 +1,6 @@
+"""
+run trough all interested pages on https://bobec.bopp-obec.info/build_show.php, and save it.
+"""
 import os
 from helpers.utils import *
 from tqdm import tqdm

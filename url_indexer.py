@@ -1,6 +1,9 @@
+"""
+indexing file in html directory, if existed
+"""
 import os
 from typing import List
-from helpers.utils import HTML_ROOT_DIR, url_index
+from helpers.utils import HTML_ROOT_DIR, is_path_existed, url_index
 from tqdm import tqdm
 
 
@@ -20,6 +23,9 @@ def get_url(fpath):
 
 if __name__ == '__main__':
     file_paths: List = list()
+
+    if not is_path_existed(HTML_ROOT_DIR):
+        exit()
 
     for dirpath, dirnames, filenames in os.walk(HTML_ROOT_DIR):
         for filename in filenames:
