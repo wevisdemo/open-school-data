@@ -145,8 +145,7 @@ class SchoolData:
     def internet(self) -> Dict:
         df = self._find_html_table(
             'computer_internet', 'ระบบเครือข่ายอินเทอร์เน็ตที่โรงเรียนเช่าเอง')
-        if df is None:
-            return
+        if df is None: {}
         header = ''
         rows = dict()
         for i, row in df.iterrows():
@@ -155,11 +154,9 @@ class SchoolData:
             else:
                 row_list = row.values.tolist()
                 col, cell = row_list
-                rows[header+'_'+col] = cell
-
-        df = pd.DataFrame([rows.values()], columns=rows.keys())
-        df.replace('-', None, inplace=True)
-        return df
+                if header not in rows.keys(): rows[header] = dict()
+                rows[header][col] = cell if cell != '-' else None
+        return rows
 
     def durable_goods(self) -> Dict:
         df = self._find_html_table('durable_goods', 'จำนวนรอจำหน่าย')
