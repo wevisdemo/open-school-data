@@ -194,7 +194,7 @@ class SchoolData:
                 im_rid = 0
                 for img in images:
                     img_url = parent_url + img['src']
-                    building_images.append({'image_url': img_url})
+                    building_images.append(img_url)
                     im_rid += 1
 
                 for tab_row in table.find_all('td'):
@@ -205,16 +205,12 @@ class SchoolData:
                         key, val = re.sub(
                             '\s+', ' ', text).split(':', maxsplit=1)
                         building_details.update({key.strip(): val.strip()})
-                temp = {'name': heading.text, }
+                
+                temp = {'name': heading.text,}
                 temp.update(building_details)
-                if building_images:
-                    for i, im in enumerate(building_images):
-                        temp.update(
-                            {f'{key}_{i}': val for key, val in im.items()})
+                temp['image'] = building_images
                 building_data.append(temp)
-        df = pd.DataFrame(building_data)
-        df.replace('-', None, inplace=True)
-        return df
+        return building_data
 
     def save(self) -> Dict[str, Dict[str, Union[Dict, pd.DataFrame]]]:
         makedirs(self.save_dir, exist_ok=True)
