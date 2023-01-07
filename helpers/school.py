@@ -145,7 +145,7 @@ class SchoolData:
     def internet(self) -> Dict:
         df = self._find_html_table(
             'computer_internet', 'ระบบเครือข่ายอินเทอร์เน็ตที่โรงเรียนเช่าเอง')
-        if df is None: {}
+        if df is None: dict()
         header = ''
         rows = dict()
         for i, row in df.iterrows():
@@ -164,7 +164,8 @@ class SchoolData:
             df.columns = df.iloc[0]
             df = df.iloc[1:, :]
             df = df.iloc[:-1]
-        return df
+            return df.to_dict('records')
+        return dict()
 
     def building(self):
         soup = load_soup(self.pages['building'])
