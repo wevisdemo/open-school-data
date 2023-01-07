@@ -7,6 +7,7 @@ import re
 from tqdm import tqdm
 data_index = Index(os.path.join(ROOT_DIR, 'result_index.txt'))
 
+
 class SchoolData:
     def __init__(self, school_id: str, page_fpaths: Dict) -> None:
         self.school_id = school_id
@@ -16,6 +17,7 @@ class SchoolData:
 
     def general(self) -> Dict:
         about_school: Dict = dict()
+        about_school_json: List = dict()
         soup: BeautifulSoup = load_soup(self.pages['general'])
         table = soup.find('table').find('table', attrs={'width': '521'})
         for comment in soup.children:
@@ -31,14 +33,21 @@ class SchoolData:
                 key_name: str = clean_text(cells[0].text)
                 value: str = clean_text(cells[1].text)
 
-                _id = 0
                 if cells[1].find_all('a'):
+                    links = []
                     for a_tag in cells[1].find_all('a'):
-                        if not a_tag.text: continue
-                        about_school.update(
-                    {f'url_text_{_id}': a_tag.text, f'url_{_id}': parent_url + a_tag.attrs['href']})
+                        if not a_tag.text:
+                            continue
+                        links.append({
+                            "text": a_tag.text,
+                            "url": (parent_url
+                                    if not a_tag.attrs['href'].startswith('http')
+                                    else '') + a_tag.attrs['href']
+                        })
+                    about_school_json.update({"links": links})
+                    continue
 
-                about_school.update({key_name: value})
+                about_school_json[key_name] = value
 
         image_dir: str = SCRAPED_FILE_DIRS['general']+'/image'
 
@@ -48,24 +57,32 @@ class SchoolData:
         for div in soup.find_all('div'):
             if not div.find('div'):
                 if 'ผู้อำนวยการโรงเรียน' in div.text:
-                    dir_name = 'principal'
-                elif 'ตราสัญลักษณ์' in div.text:
-                    dir_name = 'logo'
-                else:
-                    continue
-                image = div.find('img')
-                image_src = None
-                if image is not None:
-                    image_src = image.attrs['src']
-                    about_school.update({f'{dir_name}_image_path' : parent_url + image_src})
+                    image = div.find('img')
+                    about_school_json['principal'] = {
+                        'name': div.text.strip().split('\n')[0],
+                        'position_title': div.text.strip().split('\n')[1].strip()
+                    }
+                    image = div.find('img')
+                    if image is not None:
+                        image_src = image.attrs['src']
+                        about_school_json['principal']['image_path'] = parent_url + image_src
 
+                elif 'ตราสัญลักษณ์' in div.text:
+                    image = div.find('img')
+                    if image is not None:
+                        image_src = image.attrs['src']
+                        about_school_json['logo_image_path'] = parent_url + image_src
+
+        about_school_json['latlng'] = None
         js_text: str = ' '.join(
             [script.text for script in soup.find_all('script')])
         latlng: str = re.findall('LatLng\((.*)\)', js_text)
-        if latlng:
-            about_school.update({'latlng' : latlng})
+        if latlng and ',' in latlng[0]:
+            about_school_json['latlng'] = latlng[0].split(',')
+
         df = pd.DataFrame(about_school)
-        return df
+
+        return about_school_json
 
     def student(self) -> Dict:
         df: pd.DataFrame = self._find_html_table('student', 'ชั้น/เพศ')
@@ -74,23 +91,31 @@ class SchoolData:
             df.columns = col_headers
             if len(df) > 2:
                 df = df.iloc[1:-1]
-        return df
+        df.replace('-', None, inplace=True)
+        return dict(zip(df.iloc[:,0].tolist(), df.iloc[:,1:].to_dict('records')))
 
     def staff(self) -> Dict:
         staff_df: pd.DataFrame = self._find_html_table('staff', 'วิทยฐานะ')
         if staff_df is not None:
-            staff_header = staff_df.iloc[:2].values.tolist()
-            staff_columns = [
-                col1 if col1 == col2 else col1+'_'+col2
-                for col1, col2 in zip(staff_header[0], staff_header[1])
-            ]
-            staff_df = staff_df.iloc[2:]
-            staff_df.columns = staff_columns
-        return staff_df
+            staff_data = {}
+            for g, group_df in staff_df.iloc[2:].groupby(0):
+                g = re.sub('\d\. ?','',g)
+                values = [dict(zip(staff_df.iloc[1, 3:].values, row))
+                    for row
+                    in group_df.iloc[:, 3:].values]
+
+                staff_data[g] = [{**({staff_df.iloc[0, 1]: group_df.iloc[i, 1]} if group_df.iloc[i, 1] != '-' else {}),
+                                **({staff_df.iloc[0, 2]: group_df.iloc[i, 2]} if group_df.iloc[i, 2] != '-' else {}),
+                                staff_df.iloc[0, 3]: row}
+                                for i, row
+                                in enumerate(values) if group_df.iloc[i, 1] != 'รวม']
+            return staff_data
 
     def computer(self) -> Dict:
-        df = self._find_html_table('computer_internet', 'จำนวนคอมพิวเตอร์เพื่อการเรียนการสอน')
-        if df is None: return
+        df = self._find_html_table(
+            'computer_internet', 'จำนวนคอมพิวเตอร์เพื่อการเรียนการสอน')
+        if df is None:
+            return
         header = ''
         rows = dict()
         for _, row in df.iterrows():
@@ -104,6 +129,7 @@ class SchoolData:
                 rows[col][header] = cell
         df = pd.DataFrame(rows)
         df.reset_index(inplace=True)
+        df.replace('-', None, inplace=True)
         return df
 
     def _find_html_table(self, page, keyword):
@@ -115,10 +141,11 @@ class SchoolData:
                 df = table
                 return df
 
-
     def internet(self) -> Dict:
-        df = self._find_html_table('computer_internet', 'ระบบเครือข่ายอินเทอร์เน็ตที่โรงเรียนเช่าเอง')
-        if df is None: return
+        df = self._find_html_table(
+            'computer_internet', 'ระบบเครือข่ายอินเทอร์เน็ตที่โรงเรียนเช่าเอง')
+        if df is None:
+            return
         header = ''
         rows = dict()
         for i, row in df.iterrows():
@@ -130,6 +157,7 @@ class SchoolData:
                 rows[header+'_'+col] = cell
 
         df = pd.DataFrame([rows.values()], columns=rows.keys())
+        df.replace('-', None, inplace=True)
         return df
 
     def durable_goods(self) -> Dict:
@@ -182,9 +210,11 @@ class SchoolData:
                 temp.update(building_details)
                 if building_images:
                     for i, im in enumerate(building_images):
-                        temp.update({f'{key}_{i}': val for key, val in im.items()})
+                        temp.update(
+                            {f'{key}_{i}': val for key, val in im.items()})
                 building_data.append(temp)
         df = pd.DataFrame(building_data)
+        df.replace('-', None, inplace=True)
         return df
 
     def save(self) -> Dict[str, Dict[str, Union[Dict, pd.DataFrame]]]:

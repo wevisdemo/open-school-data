@@ -13,7 +13,7 @@
     "school_id": "",
     "index": "category",
     "งบประมาณ สพฐ.": "obec_budget",
-    "จัดหาเอง/บริจาค:": "self_supply__donated",
+    "จัดหาเอง/บริจาค:": "self_supply_donated",
     "รวม": "sub_total",
     "ใช้งานได้:": "working",
     "ใช้งานไม่ได้:": "not_working",
@@ -21,7 +21,6 @@
   },
   "general": {
     "school_id": "",
-    "รหัสโรงเรียน 10 หลัก": "school_id",
     "รหัส Smis 8 หลัก": "smis_id",
     "รหัส Obec 6 หลัก": "obec_id",
     "ชื่อสถานศึกษา(ไทย)": "name_th",

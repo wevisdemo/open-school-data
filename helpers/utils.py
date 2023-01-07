@@ -14,7 +14,7 @@ from helpers.exeptions import *
 
 INDEX_PAGE_URL = 'https://data.bopp-obec.info/emis/index.php'
 
-ROOT_DIR = 'out/' + date.today().strftime('%Y')
+ROOT_DIR = 'out/' + '2022'#date.today().strftime('%Y')
 HTML_ROOT_DIR = ROOT_DIR+'/html'
 BASE_URL = 'https://data.bopp-obec.info/emis'
 SCRAPING_URLS = {
