@@ -104,11 +104,12 @@ class SchoolData:
                     for row
                     in group_df.iloc[:, 3:].values]
 
-                staff_data[g] = [{**({staff_df.iloc[0, 1]: group_df.iloc[i, 1]} if group_df.iloc[i, 1] != '-' else {}),
-                                **({staff_df.iloc[0, 2]: group_df.iloc[i, 2]} if group_df.iloc[i, 2] != '-' else {}),
-                                staff_df.iloc[0, 3]: row}
-                                for i, row
-                                in enumerate(values) if group_df.iloc[i, 1] != 'รวม']
+                staff_data[g] = [{
+                    **({staff_df.iloc[0, 1]: group_df.iloc[i, 1]} if group_df.iloc[i, 1] != '-' else {}),
+                    **({staff_df.iloc[0, 2]: group_df.iloc[i, 2]} if group_df.iloc[i, 2] != '-' else {}),
+                    staff_df.iloc[0, 3]: row}
+                    for i, row
+                    in enumerate(values) if group_df.iloc[i, 1] != 'รวม']
             return staff_data
 
     def computer(self) -> Dict:
