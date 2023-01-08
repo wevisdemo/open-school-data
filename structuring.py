@@ -57,8 +57,8 @@ def main():
     schools_pages = load_json(schools_pages_fpath)
 
 
-    school_dfs = dict()
-    school_ids = list(sdi.school_ids())
+    school_data_stores = dict()
+    school_ids = list(sdi.school_ids())[:10]
     for school_id in tqdm(school_ids):
         if school_id not in schools_pages.keys():
             continue
@@ -74,27 +74,10 @@ def main():
         sd = SchoolData(school_id, temp)
         parsed = sd.save()
 
-        for dir in parsed:
-            if parsed[dir] is None:
-                logging.warning(f'[{school_id}] {dir} is None')
-                continue
-            if not isinstance(parsed[dir], pd.DataFrame):
-                raise TypeError(f'expected {type(pd.DataFrame)}, but {type(parsed[dir])} given')
+        school_data_stores[school_id] = parsed
 
-            tdf = parsed[dir]
-            tdf['school_id'] = school_id
-            if dir not in school_dfs.keys():
-                school_dfs[dir] = [parsed[dir]]
-            else:
-                school_dfs[dir].append(parsed[dir])
-
-    save_fpaths: Dict[str, str] = dict()
-    for feild in school_dfs:
-        fpath = os.path.join(ROOT_DIR, 'school_data', f'{feild}.csv')
-        save_fpaths[feild] = fpath
-
-    school_dfs = postprocess(school_dfs)
-    save(school_dfs, save_fpaths)
+    fpath = os.path.join(ROOT_DIR, 'school_data', 'all.json')
+    dump_json(school_data_stores, fpath)
 
 
 if __name__ == '__main__':

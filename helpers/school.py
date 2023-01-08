@@ -7,6 +7,19 @@ import re
 from tqdm import tqdm
 data_index = Index(os.path.join(ROOT_DIR, 'result_index.txt'))
 
+def rename(to_rename, data_dir, axis=1):
+    mappers = load_json('header_mapper.json')
+    mapper = mappers[data_dir]
+    if isinstance(to_rename, pd.DataFrame):
+        return to_rename.rename(mapper, axis=axis)
+    raise TypeError()
+
+def replace(to_rename, data_dir):
+    mappers = load_json('header_mapper.json')
+    mapper = mappers[data_dir]
+    if isinstance(to_rename, pd.DataFrame):
+        return to_rename.replace(mapper)
+    raise TypeError()
 
 class SchoolData:
     def __init__(self, school_id: str, page_fpaths: Dict) -> None:
@@ -80,8 +93,6 @@ class SchoolData:
         if latlng and ',' in latlng[0]:
             about_school_json['latlng'] = latlng[0].split(',')
 
-        df = pd.DataFrame(about_school)
-
         return about_school_json
 
     def student(self) -> Dict:
@@ -91,13 +102,15 @@ class SchoolData:
             df.columns = col_headers
             if len(df) > 2:
                 df = df.iloc[1:-1]
-        df.replace('-', None, inplace=True)
-        return dict(zip(df.iloc[:,0].tolist(), df.iloc[:,1:].to_dict('records')))
+            df = rename(df, 'student')
+            df = rename(df.set_index('grade'), 'student_row_header', 0).reset_index()
+            return dict(zip(df.iloc[:,0].tolist(), df.iloc[:,1:].to_dict('records')))
 
     def staff(self) -> Dict:
         staff_df: pd.DataFrame = self._find_html_table('staff', 'วิทยฐานะ')
         if staff_df is not None:
             staff_data = {}
+            staff_df = replace(staff_df, 'staff')
             for g, group_df in staff_df.iloc[2:].groupby(0):
                 g = re.sub('\d\. ?','',g)
                 values = [dict(zip(staff_df.iloc[1, 3:].values, row))
@@ -116,9 +129,10 @@ class SchoolData:
         df = self._find_html_table(
             'computer_internet', 'จำนวนคอมพิวเตอร์เพื่อการเรียนการสอน')
         if df is None:
-            return
+            return dict()
         header = ''
         rows = dict()
+        df = replace(df, 'computer')
         for _, row in df.iterrows():
             if len(row.unique()) != len(row):
                 header = row[0]
@@ -127,11 +141,10 @@ class SchoolData:
                 col, cell = row_list
                 if col not in rows.keys():
                     rows[col] = dict()
+                cell = re.sub(r'(\d+) ?เครื่อง', r'\1', cell)
+                cell = int(cell)
                 rows[col][header] = cell
-        df = pd.DataFrame(rows)
-        df.reset_index(inplace=True)
-        df.replace('-', None, inplace=True)
-        return df
+        return rows
 
     def _find_html_table(self, page, keyword):
         fpath = self.pages[page]
@@ -146,6 +159,7 @@ class SchoolData:
         df = self._find_html_table(
             'computer_internet', 'ระบบเครือข่ายอินเทอร์เน็ตที่โรงเรียนเช่าเอง')
         if df is None: dict()
+        df.fillna('-', inplace=True)
         header = ''
         rows = dict()
         for i, row in df.iterrows():
@@ -154,17 +168,19 @@ class SchoolData:
             else:
                 row_list = row.values.tolist()
                 col, cell = row_list
-                if header not in rows.keys(): rows[header] = dict()
-                rows[header][col] = cell if cell != '-' else None
+                if cell != '-':
+                    if header not in rows.keys(): rows[header] = dict()
+                    rows[header][col] = cell
         return rows
 
     def durable_goods(self) -> Dict:
-        df = self._find_html_table('durable_goods', 'จำนวนรอจำหน่าย')
+        df: pd.DataFrame = self._find_html_table('durable_goods', 'จำนวนรอจำหน่าย')
         if df is not None:
             df.columns = df.iloc[0]
             df = df.iloc[1:, :]
             df = df.iloc[:-1]
-            return df.to_dict('records')
+            df.drop('ลำดับ', axis=1, inplace=True)
+            return rename(df, 'durable_goods').to_dict('records')
         return dict()
 
     def building(self):
@@ -237,18 +253,11 @@ class SchoolData:
         return temp
 
     def wirte_file(self, caller, name):
-        fpath = os.path.join(self.save_dir, f'{name}.csv')
+        fpath = os.path.join(self.save_dir, f'{name}.json')
         ix = self.school_id + '.' + name
-        if data_index[ix] is not None:
-            fpath = data_index[ix]
-            try:
-                df = pd.read_csv(fpath)
-                return df
-            except pd.errors.EmptyDataError as e:
-                print(fpath, e)
 
-        data: pd.DataFrame = caller()
-        if data is not None:
-            data.to_csv(fpath, index=False)
+        data: Dict = caller()
+        if data is not None :
+            dump_json(data, fpath)
             data_index[ix] = fpath
             return data
