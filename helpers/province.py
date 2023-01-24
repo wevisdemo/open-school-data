@@ -3,8 +3,8 @@ from helpers.utils import *
 import re
 from tqdm import tqdm
 
-province_root_dir: str = os.path.join(HTML_ROOT_DIR, 'province')
-index_html_path: str = os.path.join(province_root_dir, 'index.html')
+PROVINCE_HTML_DIR: str = os.path.join(HTML_ROOT_DIR, 'province')
+index_html_path: str = os.path.join(PROVINCE_HTML_DIR, 'index.html')
 index_url: str = 'https://data.bopp-obec.info/emis/index.php'
 parent_url: str = re.sub('[^/]*$', '', index_url)
 

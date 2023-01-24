@@ -6,19 +6,20 @@ import pandas as pd
 import re
 from tqdm import tqdm
 data_index = Index(os.path.join(ROOT_DIR, 'result_index.txt'))
+mappers = load_json('header_mapper.json')
 
 def rename(to_rename, data_dir, axis=1):
-    mappers = load_json('header_mapper.json')
     mapper = mappers[data_dir]
     if isinstance(to_rename, pd.DataFrame):
         return to_rename.rename(mapper, axis=axis)
     raise TypeError()
 
 def replace(to_rename, data_dir):
-    mappers = load_json('header_mapper.json')
     mapper = mappers[data_dir]
     if isinstance(to_rename, pd.DataFrame):
         return to_rename.replace(mapper)
+    if isinstance(to_rename, str):
+        return mapper[to_rename]
     raise TypeError()
 
 class SchoolData:
@@ -29,7 +30,6 @@ class SchoolData:
             ROOT_DIR, 'school_data', 'school', school_id)
 
     def general(self) -> Dict:
-        about_school: Dict = dict()
         about_school_json: List = dict()
         soup: BeautifulSoup = load_soup(self.pages['general'])
         table = soup.find('table').find('table', attrs={'width': '521'})
@@ -60,7 +60,7 @@ class SchoolData:
                     about_school_json.update({"links": links})
                     continue
 
-                about_school_json[key_name] = value
+                about_school_json[replace(key_name, 'general')] = value
 
         image_dir: str = SCRAPED_FILE_DIRS['general']+'/image'
 
@@ -162,6 +162,7 @@ class SchoolData:
         df.fillna('-', inplace=True)
         header = ''
         rows = dict()
+        df = replace(df, 'internet')
         for i, row in df.iterrows():
             if len(row.unique()) != len(row):
                 header = row[0]
@@ -180,6 +181,7 @@ class SchoolData:
             df = df.iloc[1:, :]
             df = df.iloc[:-1]
             df.drop('ลำดับ', axis=1, inplace=True)
+            df.fillna("0", inplace=True)
             return rename(df, 'durable_goods').to_dict('records')
         return dict()
 
@@ -220,7 +222,8 @@ class SchoolData:
                             continue
                         key, val = re.sub(
                             '\s+', ' ', text).split(':', maxsplit=1)
-                        building_details.update({key.strip(): val.strip()})
+                        
+                        building_details.update({replace(key.strip(), 'building'): val.strip()})
                 
                 temp = {'name': heading.text,}
                 temp.update(building_details)

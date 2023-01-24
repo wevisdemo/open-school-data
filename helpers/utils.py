@@ -307,6 +307,14 @@ class SchoolDataIndex:
             self.load()
         return self.data[key]
 
+    def get_school(self, key):
+        if self.data is None:
+            self.load()
+        for province_id in self.data:
+            if key in self.data[province_id]['schools'].keys():
+                return self.data[province_id]['schools'][key]
+        raise KeyError()
+
     def __setitem__(self, key, val):
         if self.data is None:
             self.load()

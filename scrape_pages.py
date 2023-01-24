@@ -16,6 +16,7 @@ sdi: SchoolDataIndex = SchoolDataIndex()
 logger_fpath = os.path.join(ROOT_DIR, 'open_school_data.log')
 logging.basicConfig(filename=logger_fpath)
 
+def 
 
 def school_subpages(index: Index) -> Dict:
     school_url_pages_fpath: str = os.path.join(

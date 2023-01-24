@@ -6,6 +6,7 @@ from helpers.school import SchoolData
 from helpers.utils import *
 from tqdm import tqdm
 import pandas as pd
+from helpers.province import PROVINCE_HTML_DIR
 
 logger_fpath = os.path.join(ROOT_DIR, 'open_school_data.log')
 logging.basicConfig(filename=logger_fpath)
@@ -18,35 +19,20 @@ def save(dataframes: Dict[str, pd.DataFrame], save_paths: Dict[str, str]):
         df.to_csv(fpath, index=False)
 
 
-def postprocess(dataframes: Dict[str, pd.DataFrame]):
-    mappers = load_json('header_mapper.json')
-    pp_dataframes: Dict[str, pd.DataFrame] = dict()
-    primary_key = 'school_id'
-    for kdf in dataframes:
-        mapper = mappers[kdf]
-        mapper = {old: new for old, new in mapper.items() if new}
-        
-        df: pd.DataFrame = pd.concat(dataframes[kdf], ignore_index=True)
-
-        if kdf == 'durable_goods':
-            df.drop('ลำดับ', axis=1, inplace=True)
-
-        if kdf == 'staff':
-            df['ตำแหน่ง'] = df['ตำแหน่ง'].apply(lambda text: re.sub('\d+\. ', '', text))
-
-        df = df[[primary_key] + [col for col in df.columns if col != primary_key]]\
-            .rename(mapper, axis=1)\
-            .fillna('')
-        
-        pp_dataframes[kdf] = df
-    return pp_dataframes
-
-
 def remove_feilds(dictionary: Dict[str, str], feilds_to_remove: List[str]):
     for feild in feilds_to_remove:
         if feild not in dictionary.keys(): continue
         dictionary.pop(feild)
 
+
+def get_affiliation_indexer():
+    all_dfs = []
+    for province_html in os.listdir(PROVINCE_HTML_DIR):
+        if 'index.html' == province_html: continue
+        file_path = os.path.join(PROVINCE_HTML_DIR, province_html)
+        tables = pd.read_html(file_path, converters={'รหัสโรงเรียน': lambda x: x, 'รหัส สพท.': lambda x: x})
+        all_dfs.append(tables[0].dropna().set_index('รหัสโรงเรียน'))
+    return pd.concat(all_dfs)['สพท.']
 
 def main():
     sdi = SchoolDataIndex()
@@ -56,10 +42,10 @@ def main():
     schools_pages_fpath = os.path.join(ROOT_DIR, 'school_file_path_pages.json')
     schools_pages = load_json(schools_pages_fpath)
 
-
+    print('building..')
     school_data_stores = dict()
     school_ids = list(sdi.school_ids())[:10]
-    for school_id in tqdm(school_ids):
+    for school_id in tqdm(['101431089']):
         if school_id not in schools_pages.keys():
             continue
         temp: Dict = schools_pages[school_id].copy()
@@ -75,6 +61,7 @@ def main():
         parsed = sd.save()
 
         school_data_stores[school_id] = parsed
+        school_data_stores[school_id]['general']['affiliation'] = sdi.get_school(school_id)['สพท.']
 
     fpath = os.path.join(ROOT_DIR, 'school_data', 'all.json')
     dump_json(school_data_stores, fpath)
