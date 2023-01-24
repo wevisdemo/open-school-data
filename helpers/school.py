@@ -173,19 +173,11 @@ class SchoolData:
             'computer_internet', 'ระบบเครือข่ายอินเทอร์เน็ตที่โรงเรียนเช่าเอง')
         if df is None: dict()
         df.fillna('-', inplace=True)
-        header = ''
-        rows = dict()
         df = replace(df, 'internet')
-        for i, row in df.iterrows():
-            if len(row.unique()) != len(row):
-                header = row[0]
-            else:
-                row_list = row.values.tolist()
-                col, cell = row_list
-                if cell != '-':
-                    if header not in rows.keys(): rows[header] = dict()
-                    rows[header][col] = cell
-        return rows
+        return dict([
+            [cell if cell != '-' else None for cell in record.values()]
+            for record in df[df[0] != df[1]].to_dict('records')
+        ])
 
     def durable_goods(self) -> Dict:
         df: pd.DataFrame = self._find_html_table('durable_goods', 'จำนวนรอจำหน่าย')
