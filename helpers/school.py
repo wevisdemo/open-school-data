@@ -104,7 +104,20 @@ class SchoolData:
                 df = df.iloc[1:-1]
             df = rename(df, 'student')
             df = rename(df.set_index('grade'), 'student_row_header', 0).reset_index()
-            return dict(zip(df.iloc[:,0].tolist(), df.iloc[:,1:].to_dict('records')))
+            
+            df = df[df.grade.apply(lambda x: 'total' not in x)]
+            df = df.astype({'men': int, 'women': int, 'total': int, 'class': int})
+            
+            stats = df.assign(g=df.grade.apply(lambda x: x[:-1])).groupby('g').total.sum().to_dict()
+            stats.update({
+                'all': df.total.sum(),
+                'class': df['class'].sum(),
+            })
+            
+            df.set_index('grade').to_dict('index')
+            return {
+                'total': stats,
+                **df.set_index('grade').to_dict('index')}
 
     def staff(self) -> Dict:
         staff_df: pd.DataFrame = self._find_html_table('staff', 'วิทยฐานะ')
@@ -181,8 +194,14 @@ class SchoolData:
             df = df.iloc[1:, :]
             df = df.iloc[:-1]
             df.drop('ลำดับ', axis=1, inplace=True)
-            df.fillna("0", inplace=True)
-            return rename(df, 'durable_goods').to_dict('records')
+            df.fillna(0)
+            df = rename(df, 'durable_goods')
+            df.loc[df.code.isin(['11001', '22001', '22002']), 'type'] = 'โต๊ะเก้าอี้นักเรียน'
+            def _handler(type_df,):
+                type_df = type_df.astype({'working': int, 'to_be_repaired': int, 'to_be_removed': int})
+                stats = type_df[['working', 'to_be_repaired', 'to_be_removed']].sum().to_dict()
+                return {**stats, 'list': type_df.to_dict('records')}
+            return df.groupby('type').apply(_handler).to_dict()
         return dict()
 
     def building(self):

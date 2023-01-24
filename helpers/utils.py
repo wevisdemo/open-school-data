@@ -11,6 +11,7 @@ import requests
 from os import path, makedirs
 from helpers.indexer import Index
 from helpers.exeptions import *
+import numpy as np
 
 INDEX_PAGE_URL = 'https://data.bopp-obec.info/emis/index.php'
 
@@ -43,7 +44,7 @@ def load_json(fpath):
 
 def dump_json(obj, fpath):
   with open(fpath, 'w') as fp:
-    json.dump(obj, fp, ensure_ascii=False, indent=1)
+    json.dump(obj, fp, ensure_ascii=False, indent=1, cls=NpEncoder)
 
 
 def prep_param_dict(soup: BeautifulSoup) -> Dict[str, str]:
@@ -352,3 +353,13 @@ class SchoolDataIndex:
             self.load()
         for school_id in self.school_ids:
             yield load_school_data(school_id)
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
