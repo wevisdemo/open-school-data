@@ -150,13 +150,21 @@ class SchoolData:
             if len(row.unique()) != len(row):
                 header = row[0]
             else:
+                if header not in rows.keys():
+                    rows[header] = dict()
                 row_list = row.values.tolist()
                 col, cell = row_list
-                if col not in rows.keys():
-                    rows[col] = dict()
                 cell = re.sub(r'(\d+) ?เครื่อง', r'\1', cell)
                 cell = int(cell)
-                rows[col][header] = cell
+                if col.startswith('source'):
+                    source_dict = rows[header].get('source', dict())
+                    source_dict[col.replace('source_','')] = cell
+                    rows[header]['source'] = source_dict
+                else:
+                    rows[header][col] = cell
+        dict_total = rows['total']
+        del rows['total']
+        rows.update(dict_total)
         return rows
 
     def _find_html_table(self, page, keyword):
