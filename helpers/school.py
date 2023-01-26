@@ -208,12 +208,21 @@ class SchoolData:
             df = df.iloc[1:, :]
             df = df.iloc[:-1]
             df.drop('ลำดับ', axis=1, inplace=True)
-            df.fillna(0)
+            df.fillna(0, inplace=True)
             df = rename(df, 'durable_goods')
             df.loc[df.code.isin(['11001', '22001', '22002']), 'type'] = 'โต๊ะเก้าอี้นักเรียน'
+            df = df.replace('ครุภัณฑ์สำนักงาน โรงเรียน', 'ครุภัณฑ์สำนักงาน/โรงเรียน')
+            df = df.astype({'working': int, 'to_be_repaired': int, 'to_be_removed': int})
+            df.loc[:, 'total'] = df[['working', 'to_be_repaired', 'to_be_removed']].sum(1)
             def _handler(type_df,):
-                type_df = type_df.astype({'working': int, 'to_be_repaired': int, 'to_be_removed': int})
-                stats = type_df[['working', 'to_be_repaired', 'to_be_removed']].sum().to_dict()
+                type_df = type_df[type_df['total'] != 0] # filter out
+                stats = type_df[['working', 'to_be_repaired', 'to_be_removed', 'total']].sum().to_dict()
+                type_df.loc[:, 'name'] = type_df['name'].apply(
+                    lambda name:
+                        re.sub(r'(\S)(\()', r'\1 \2',
+                            re.sub('\(ใช้.*\)', '', name)
+                        ).strip()
+                    )
                 return {**stats, 'list': type_df.to_dict('records')}
             return df.groupby('type').apply(_handler).to_dict()
         return dict()
@@ -226,7 +235,20 @@ class SchoolData:
         url = re.findall('url: (.*)\n', comment)
         parent_url = re.sub('[^/]*$', '', url[0])
 
-        building_data = []
+        building_data = {
+            'อาคารเรียน': [],
+            'อาคารทั่วไป': [],
+            'ห้องน้ำ': [],
+            'บ้านพัก': [],
+            'การเกษตร': [],
+            'อื่นๆ': [],
+        }
+        stats = {
+           "ดี": 0,
+           "พอใช้": 0,
+           "ทรุดโทรม": 0,
+           "จำนวนห้องในอาคารเรียน": 0,
+        }
         for row in soup.find_all('div', attrs={'class': 'row'}):
             cols = row.find_all('div', attrs={'class': 'col-md-4'})
             for col in cols:
@@ -257,15 +279,40 @@ class SchoolData:
                             '\s+', ' ', text).split(':', maxsplit=1)
                         
                         building_details.update({replace(key.strip(), 'building'): val.strip()})
-                
-                temp = {'name': heading.text,}
+
+                if 'room_number' in building_details.keys():
+                    building_details['room_number'] = int(
+                        re.sub(r'(\d+) ห้อง', r'\1', building_details['room_number'])
+                    )
+                    stats['จำนวนห้องในอาคารเรียน'] += building_details['room_number']
+                else:
+                    building_details['room_number'] = None
+
+                temp = {'name': re.sub(r'(.*) ลำดับที่ \d+', r'\1', heading.text).strip(),
+                        'raw_name': heading.text.strip()}
+
                 temp.update(building_details)
                 temp['image'] = building_images
-                building_data.append(temp)
-        return building_data
+                building_data[self._get_building_type(heading.text)].append(temp)
+                stats[temp['current_condition']] += 1
+
+        return {'data': building_data, 'stats': stats}
+    
+    def _get_building_type(self, building_name):
+        if re.match('อาคารเรียน', building_name):
+            return 'อาคารเรียน'
+        if re.match('อาคาร|สนาม|หอสมุด', building_name):
+            return 'อาคารทั่วไป'
+        if re.match('ส้วม', building_name):
+            return 'ห้องน้ำ'
+        if re.match('บ้านพัก', building_name):
+            return 'บ้านพัก'
+        if re.match('เรือนเพาะชำ|บ่อ', building_name):
+            return 'การเกษตร'
+        return 'อื่นๆ'
 
     def save(self) -> Dict[str, Dict[str, Union[Dict, pd.DataFrame]]]:
-        makedirs(self.save_dir, exist_ok=True)
+        # makedirs(self.save_dir, exist_ok=True)
 
         methods = {
             'building': self.building,
@@ -281,11 +328,14 @@ class SchoolData:
         for dir in self.pages:
             if dir == 'computer_internet':
                 for dir in ['computer', 'internet']:
-                    data = self.wirte_file(methods[dir], dir)
+                    data = methods[dir]()
                     temp[dir] = data
             else:
-                data = self.wirte_file(methods[dir], dir)
-                temp[dir] = data
+                data = methods[dir]()
+                if dir == 'general':
+                    temp.update(data)
+                else:
+                    temp[dir] = data
         return temp
 
     def wirte_file(self, caller, name):
@@ -294,6 +344,6 @@ class SchoolData:
 
         data: Dict = caller()
         if data is not None :
-            dump_json(data, fpath)
+            # dump_json(data, fpath)
             data_index[ix] = fpath
             return data

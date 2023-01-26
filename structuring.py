@@ -41,11 +41,13 @@ def main():
 
     schools_pages_fpath = os.path.join(ROOT_DIR, 'school_file_path_pages.json')
     schools_pages = load_json(schools_pages_fpath)
+    
+    school_data_dir = os.path.join(ROOT_DIR, 'school_data', 'school', )
+    if not os.path.exists(school_data_dir):
+        os.makedirs(school_data_dir)
 
-    print('building..')
-    school_data_stores = dict()
     school_ids = list(sdi.school_ids())[:10]
-    for school_id in tqdm(['101431089']):
+    for school_id in tqdm(school_ids):
         if school_id not in schools_pages.keys():
             continue
         temp: Dict = schools_pages[school_id].copy()
@@ -60,11 +62,9 @@ def main():
         sd = SchoolData(school_id, temp)
         parsed = sd.save()
 
-        school_data_stores[school_id] = parsed
-        school_data_stores[school_id]['general']['affiliation'] = sdi.get_school(school_id)['สพท.']
-
-    fpath = os.path.join(ROOT_DIR, 'school_data', 'all.json')
-    dump_json(school_data_stores, fpath)
+        parsed['affiliation'] = sdi.get_school(school_id)['สพท.']
+        fpath = os.path.join(ROOT_DIR, 'school_data', 'school', f'{school_id}.json')
+        dump_json(parsed, fpath)
 
 
 if __name__ == '__main__':
