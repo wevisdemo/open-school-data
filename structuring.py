@@ -7,6 +7,7 @@ from helpers.utils import *
 from tqdm import tqdm
 import pandas as pd
 from helpers.province import PROVINCE_HTML_DIR
+from typing import Union
 
 logger_fpath = os.path.join(ROOT_DIR, 'open_school_data.log')
 logging.basicConfig(filename=logger_fpath)
@@ -46,7 +47,7 @@ def main():
     if not os.path.exists(school_data_dir):
         os.makedirs(school_data_dir)
 
-    school_ids = list(sdi.school_ids())[:10] + ['1010720003']
+    school_ids = list(sdi.school_ids())
     for school_id in tqdm(school_ids):
         if school_id not in schools_pages.keys():
             continue
@@ -62,10 +63,35 @@ def main():
         sd = SchoolData(school_id, temp)
         parsed = sd.save()
 
-        parsed['affiliation'] = sdi.get_school(school_id)['สพท.']
+        affiliation = sdi.get_school(school_id)['สพท.']
+        if isinstance(affiliation, str) and affiliation.startswith('สพป'):
+            affiliation = 'สพป.'
+        elif isinstance(affiliation, str) and affiliation.startswith('สพม'):
+            affiliation = 'สพม.'
+        else:
+            print(affiliation)
+        parsed['affiliation'] = affiliation
+        parsed['school_size'] = get_school_size(affiliation, parsed['student']['total']['all'])
         fpath = os.path.join(ROOT_DIR, 'school_data', 'school', f'{school_id}.json')
         dump_json(parsed, fpath)
 
-
+def get_school_size(school_type: str, student_number: int):
+    if school_type == 'สพป.':
+        if student_number <= 120:
+            return 'เล็ก'
+        elif student_number <= 600:
+            return 'กลาง'
+        elif student_number <= 1500:
+            return 'ใหญ่'
+        return 'ใหญ่พิเศษ'
+    if school_type == 'สพม.':
+        if student_number < 500:
+            return 'เล็ก'
+        elif student_number < 1500:
+            return 'กลาง'
+        elif student_number < 2500:
+            return 'ใหญ่'
+        return 'ใหญ่พิเศษ'
+    raise ValueError('"' + school_type + '" school type not recognized')
 if __name__ == '__main__':
     main()

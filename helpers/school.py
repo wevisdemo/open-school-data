@@ -46,11 +46,17 @@ class SchoolData:
                 key_name: str = clean_text(cells[0].text)
                 value: str = clean_text(cells[1].text)
 
+                if re.match('หมู่ที่.*บ้าน.*', value):
+                    value = re.sub(r'หมู่ที่ ?(\d+|\-) ?บ้าน ?(\d+|\-) ?', r'หมู่ที่ \1 บ้าน \2', value)
+                    if 'หมู่ที่ 0' in value:
+                        value = value.replace('หมู่ที่ 0', 'หมู่ที่ -')
+                    if 'บ้าน 0' in value:
+                        value = value.replace('บ้าน 0', 'บ้าน -')
+
                 if cells[1].find_all('a'):
                     links = []
                     for a_tag in cells[1].find_all('a'):
-                        if not a_tag.text:
-                            continue
+                        if not a_tag.text: continue
                         links.append({
                             "text": a_tag.text,
                             "url": (parent_url
@@ -71,10 +77,15 @@ class SchoolData:
             if not div.find('div'):
                 if 'ผู้อำนวยการโรงเรียน' in div.text:
                     image = div.find('img')
-                    about_school_json['principal'] = {
-                        'name': div.text.strip().split('\n')[0],
-                        'position_title': div.text.strip().split('\n')[1].strip()
-                    }
+                    about_school_json['principal'] = dict()
+
+                    for line in div.text.strip().split('\n'):
+                        line = line.strip()
+                        if line and re.match('ผู้อำนวยการ', line):
+                            about_school_json['principal']['position_title'] = line
+                        elif line:
+                            about_school_json['principal']['name'] = line
+
                     image = div.find('img')
                     if image is not None:
                         image_src = image.attrs['src']
@@ -292,9 +303,9 @@ class SchoolData:
                         'raw_name': heading.text.strip()}
 
                 temp.update(building_details)
-                temp['image'] = building_images
+                temp['images'] = building_images
                 building_data[self._get_building_type(heading.text)].append(temp)
-                stats[temp['current_condition']] += 1
+                stats[temp['current_condition']] = stats.get(temp['current_condition'])
 
         return {'data': building_data, 'stats': stats}
     
@@ -312,7 +323,6 @@ class SchoolData:
         return 'อื่นๆ'
 
     def save(self) -> Dict[str, Dict[str, Union[Dict, pd.DataFrame]]]:
-        # makedirs(self.save_dir, exist_ok=True)
 
         methods = {
             'building': self.building,
