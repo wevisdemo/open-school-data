@@ -46,7 +46,7 @@ def main():
     if not os.path.exists(school_data_dir):
         os.makedirs(school_data_dir)
 
-    school_ids = list(sdi.school_ids())[:10]
+    school_ids = list(sdi.school_ids())[:10] + ['1010720003']
     for school_id in tqdm(school_ids):
         if school_id not in schools_pages.keys():
             continue
