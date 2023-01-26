@@ -123,20 +123,34 @@ class SchoolData:
         staff_df: pd.DataFrame = self._find_html_table('staff', 'วิทยฐานะ')
         if staff_df is not None:
             staff_data = {}
-            staff_df = replace(staff_df, 'staff')
-            for g, group_df in staff_df.iloc[2:].groupby(0):
-                g = re.sub('\d\. ?','',g)
-                values = [dict(zip(staff_df.iloc[1, 3:].values, row))
-                    for row
-                    in group_df.iloc[:, 3:].values]
+            staff_df.columns = [
+                c1 if c1 == c2 else c1 + '_' + c2
+                for c1,c2 in zip(staff_df.iloc[0], staff_df.iloc[1])
+            ]
+            df = rename(staff_df, 'staff')
+            df.drop([0,1], inplace=True)
+            df = replace(df, 'staff_row_header')
 
-                staff_data[g] = [{
-                    **({staff_df.iloc[0, 1]: group_df.iloc[i, 1]} if group_df.iloc[i, 1] != '-' else {}),
-                    **({staff_df.iloc[0, 2]: group_df.iloc[i, 2]} if group_df.iloc[i, 2] != '-' else {}),
-                    staff_df.iloc[0, 3]: row}
-                    for i, row
-                    in enumerate(values) if group_df.iloc[i, 1] != 'รวม']
-            return staff_data
+            # regroup 'ลูกจ้างประจำ', 'พนักงานราชการ', 'ลูกจ้างชั่วคราว' as 'พนักงาน'
+            is_edu_staff = df.position.isin(['ลูกจ้างประจำ', 'พนักงานราชการ', 'ลูกจ้างชั่วคราว'])
+            df.loc[is_edu_staff, 'rank_position'] = df[is_edu_staff].position
+            df.loc[is_edu_staff, 'position'] = 'พนักงาน'
+
+            staff_stats = {}
+            for position, sub_df in df.groupby('position'):
+                # exclude 'รวม' row
+                is_total_row = sub_df.professional_rank == 'รวม'
+                sub_df = sub_df[~is_total_row].set_index('rank_position')[['men', 'women', 'total']].astype(int)
+
+                if position == 'รวมทั้งหมด':
+                    staff_stats.update(sub_df.sum().to_dict())
+                else:
+                    temp = sub_df.to_dict('index')
+                    stats = sub_df.sum().to_dict()
+                    stats.update(temp)
+                    staff_stats[position] = stats
+
+            return staff_stats
 
     def computer(self) -> Dict:
         df = self._find_html_table(
